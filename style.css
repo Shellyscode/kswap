@@ -753,24 +753,215 @@ input, select, textarea { font-family: inherit; }
 
 /* ===================================================
    FIX: Make <select> dropdown options readable
-   The dark theme gives selected text color #f1f5f9 (light).
-   But native <option> elements render on the OS default
-   background (white), making the text invisible.
-   This forces options to have a dark bg + light text.
    =================================================== */
-select,
-.input-wrap select {
+select, .input-wrap select {
   color: var(--text-primary) !important;
   background-color: var(--bg-tertiary) !important;
 }
+select option { background-color: #1a1a2e; color: #f1f5f9; padding: 8px; }
+select option[value=""] { color: #64748b; }
 
-select option {
-  background-color: #1a1a2e;
-  color: #f1f5f9;
-  padding: 8px;
+/* ===================================================
+   LIGHT MODE
+   =================================================== */
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-tertiary: #e2e8f0;
+  --bg-card: rgba(0,0,0,0.04);
+  --bg-card-hover: rgba(0,0,0,0.07);
+  --bg-input: rgba(0,0,0,0.05);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border: rgba(0,0,0,0.08);
+  --border-light: rgba(0,0,0,0.12);
+  --shadow: 0 8px 32px rgba(0,0,0,0.12);
+  --shadow-glow: 0 0 40px rgba(139,92,246,0.08);
+  --accent-glow: rgba(139,92,246,0.15);
+}
+[data-theme="light"] .landing-page { background: linear-gradient(180deg,#1e1b4b 0%,#312e81 40%,#f8fafc 100%); }
+[data-theme="light"] select, [data-theme="light"] .input-wrap select { background-color: #e2e8f0 !important; color: #0f172a !important; }
+[data-theme="light"] select option { background-color: #e2e8f0; color: #0f172a; }
+[data-theme="light"] .profile-cover { background: linear-gradient(135deg,#8b5cf6,#06b6d4); }
+[data-theme="light"] .glass { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .bottom-nav { background: rgba(248,250,252,0.95); border-top-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .listing-card { background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+[data-theme="light"] .chat-bubble.received { background: #e2e8f0; color: #0f172a; }
+[data-theme="light"] .chat-input-bar { background: #f1f5f9; border-top-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .input-wrap input, [data-theme="light"] .input-wrap textarea { background: #e2e8f0; color: #0f172a; }
+[data-theme="light"] .toast { background: #1e293b; }
+[data-theme="light"] .modal-overlay { background: rgba(0,0,0,0.4); }
+[data-theme="light"] .pill { background: rgba(0,0,0,0.06); color: #475569; }
+[data-theme="light"] .pill.active { background: var(--accent); color: #fff; }
+[data-theme="light"] .settings-item { background: #fff; }
+[data-theme="light"] .page { background: var(--bg-primary); }
+[data-theme="light"] .auth-card { background: #fff; }
+[data-theme="light"] .faq-item { background: #fff; }
+[data-theme="light"] .detail-body { background: var(--bg-primary); }
+[data-theme="light"] .notif-item { background: #fff; }
+
+/* Dark mode toggle in settings */
+.theme-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; cursor: default;
+}
+.toggle-switch {
+  position: relative; width: 48px; height: 26px; cursor: pointer;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0; background: var(--bg-tertiary);
+  border-radius: 26px; transition: 0.3s var(--ease);
+  border: 1px solid var(--border-light);
+}
+.toggle-slider::before {
+  content: ''; position: absolute; width: 18px; height: 18px;
+  left: 4px; top: 50%; transform: translateY(-50%);
+  background: var(--text-muted); border-radius: 50%; transition: 0.3s var(--ease);
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(22px) translateY(-50%); background: #fff; }
+
+/* ===================================================
+   EDIT PROFILE MODAL
+   =================================================== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px); z-index: 1000;
+  display: none; align-items: flex-end; justify-content: center;
+  padding: 0;
+}
+.modal-overlay.open { display: flex; animation: fadeIn 0.2s var(--ease); }
+.modal-sheet {
+  width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+  background: var(--bg-secondary); border-radius: 24px 24px 0 0;
+  padding: 28px 24px 40px; animation: slideUp 0.3s var(--ease);
+}
+.modal-handle {
+  width: 40px; height: 4px; background: var(--border-light);
+  border-radius: 4px; margin: 0 auto 24px; display: block;
+}
+.modal-title { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+.modal-actions .btn-primary { flex: 1; }
+.modal-actions .btn-secondary { flex: 0 0 auto; padding: 0 20px; }
+
+/* Edit profile button on profile */
+.edit-profile-btn {
+  position: absolute; top: 16px; right: 16px;
+  background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);
+  color: var(--accent); padding: 8px 14px; border-radius: var(--radius-full);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.edit-profile-btn:hover { background: rgba(139,92,246,0.25); }
+.profile-info { position: relative; }
+
+/* ===================================================
+   FILTER BOTTOM SHEET
+   =================================================== */
+.filter-bar {
+  display: flex; gap: 10px; align-items: center; margin: 12px 0;
+}
+.filter-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--radius-full);
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-size: 13px; font-weight: 600; color: var(--text-secondary);
+  cursor: pointer; transition: all 0.2s var(--ease); white-space: nowrap;
+}
+.filter-btn.active { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.4); color: var(--accent); }
+.filter-btn:hover { border-color: var(--border-light); color: var(--text-primary); }
+.sort-select {
+  flex: 1; padding: 8px 12px; border-radius: var(--radius-full);
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-size: 13px; color: var(--text-secondary); cursor: pointer;
+}
+.filter-section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); margin: 16px 0 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter-chip {
+  padding: 7px 14px; border-radius: var(--radius-full);
+  border: 1px solid var(--border-light); font-size: 13px;
+  color: var(--text-secondary); cursor: pointer; transition: all 0.2s var(--ease);
+  background: transparent;
+}
+.filter-chip.selected { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.5); color: var(--accent); font-weight: 600; }
+.filter-count-badge {
+  background: var(--accent); color: #fff; font-size: 11px; font-weight: 700;
+  padding: 2px 7px; border-radius: var(--radius-full); margin-left: 4px;
 }
 
-/* Placeholder option ("Select") — slightly dimmer */
-select option[value=""] {
-  color: #64748b;
+/* ===================================================
+   WISHLIST / LOOKING FOR
+   =================================================== */
+.wishlist-tab-bar {
+  display: flex; gap: 8px; margin: 12px 0;
+  border-bottom: 1px solid var(--border); padding-bottom: 0;
 }
+.wishlist-tab {
+  padding: 10px 16px; font-size: 14px; font-weight: 600;
+  color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; transition: all 0.2s var(--ease);
+}
+.wishlist-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.wishlist-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+  transition: all 0.2s var(--ease);
+}
+.wishlist-card:hover { border-color: var(--border-light); background: var(--bg-card-hover); }
+.wishlist-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.wishlist-card-title { font-weight: 700; font-size: 16px; }
+.wishlist-card-budget { color: var(--success); font-weight: 700; font-size: 15px; }
+.wishlist-card-desc { color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin: 6px 0; }
+.wishlist-card-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); margin-top: 10px; align-items: center; }
+.wishlist-post-form {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; margin-bottom: 20px;
+}
+.wishlist-post-form h3 { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+
+/* ===================================================
+   MARK AS SOLD
+   =================================================== */
+.sold-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.55);
+  border-radius: var(--radius); display: flex; align-items: center; justify-content: center;
+  z-index: 2; pointer-events: none;
+}
+.sold-badge-big {
+  background: var(--danger); color: #fff; font-weight: 800;
+  font-size: 15px; padding: 6px 18px; border-radius: var(--radius-full);
+  letter-spacing: 0.08em; transform: rotate(-5deg); box-shadow: 0 4px 12px rgba(239,68,68,0.4);
+}
+.listing-card { position: relative; overflow: hidden; }
+.mark-sold-btn {
+  width: 100%; margin-top: 8px; padding: 8px;
+  background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2);
+  color: var(--danger); border-radius: var(--radius-xs); font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all 0.2s var(--ease);
+}
+.mark-sold-btn:hover { background: rgba(239,68,68,0.2); }
+.my-listing-wrap { position: relative; }
+
+/* ===================================================
+   PUSH NOTIFICATION BANNER
+   =================================================== */
+.notif-permission-banner {
+  margin: 16px 0; padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(6,182,212,0.08));
+  border: 1px solid rgba(139,92,246,0.25); border-radius: var(--radius);
+  display: flex; align-items: center; gap: 12px;
+}
+.notif-permission-banner .banner-icon { font-size: 24px; flex-shrink: 0; }
+.notif-permission-banner .banner-text { flex: 1; }
+.notif-permission-banner .banner-text p { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.notif-permission-banner .banner-text small { font-size: 12px; color: var(--text-muted); }
+.notif-permission-banner .banner-btn {
+  padding: 8px 14px; background: var(--accent); color: #fff;
+  border-radius: var(--radius-full); font-size: 12px; font-weight: 700;
+  cursor: pointer; white-space: nowrap; transition: all 0.2s var(--ease); flex-shrink: 0;
+}
+.notif-permission-banner .banner-btn:hover { background: var(--accent-light); }
+
