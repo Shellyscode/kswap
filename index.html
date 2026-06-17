@@ -703,7 +703,7 @@
       </button>
     </div>
     <div style="padding:8px 16px; background:rgba(245,158,11,0.06); border-bottom:1px solid rgba(245,158,11,0.15);">
-      <p style="font-size:11px; color:var(--warning); line-height:1.5; text-align:center;">🛡️ <strong>Safety Reminder:</strong> Always meet in public campus locations. Never share personal financial details. K-SWAP does not verify users — exercise caution and trust your judgement.</p>
+      <p style="font-size:11px; color:var(--warning); line-height:1.5; text-align:center;">🛡️ <strong>Platform Reminder:</strong> K-SWAP facilitates member connections and is not a party to any transaction. For your safety, conduct all exchanges in public campus areas and inspect items before any payment.</p>
     </div>
     <div class="chat-actions">
       <button onclick="sendCounterOffer()">💰 Counter Offer</button>
@@ -832,6 +832,10 @@
           <div class="si-left"><div class="si-icon" style="background:rgba(100,116,139,0.12);">📜</div><div class="si-text"><h3>Terms &amp; Privacy</h3><p>Legal stuff</p></div></div>
           <div class="si-arrow">›</div>
         </div>
+        <div class="settings-item" id="admin-menu-item" style="display:none;" onclick="navigate('admin')">
+          <div class="si-left"><div class="si-icon" style="background:rgba(239,68,68,0.12);">🔐</div><div class="si-text"><h3>Admin Panel</h3><p>Review reports &amp; take action</p></div></div>
+          <div class="si-arrow">›</div>
+        </div>
         <div class="settings-item logout-item" onclick="handleLogout()">
           <div class="si-left"><div class="si-icon" style="background:rgba(239,68,68,0.12);">🚪</div><div class="si-text"><h3>Log Out</h3><p>Sign out of your account</p></div></div>
           <div class="si-arrow">›</div>
@@ -893,9 +897,9 @@
         </div>
       </div>
       <div class="about-section" style="margin-top:0;">
-        <div class="about-card" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.15);">
-          <p style="font-size:13px;font-weight:600;color:var(--danger);margin-bottom:6px;">⚠️ Platform Disclaimer</p>
-          <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">K-SWAP is a peer-to-peer platform. We do not verify the identity or credentials of users beyond basic roll number format validation. All transactions are conducted at the discretion and risk of the parties involved. Please exercise caution, meet in public campus locations, and never transfer money before inspecting items in person.</p>
+        <div class="about-card" style="background:rgba(139,92,246,0.06);border-color:rgba(139,92,246,0.15);">
+          <p style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:6px;">ℹ️ Platform Scope</p>
+          <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">K-SWAP is a self-regulated peer-to-peer marketplace for the KIIT campus community. Members self-register using their institutional roll number. Platform access does not constitute identity or credential verification. All parties are encouraged to exercise independent due diligence before engaging in any exchange. K-SWAP facilitates connections and assumes no liability for the conduct of its members or the condition of any listed item.</p>
         </div>
       </div>
       <div class="about-footer-note">Made with ❤️ at KIIT University<br><small>© 2026 K-SWAP. All rights reserved.</small></div>
@@ -1035,8 +1039,8 @@
         <p>Your data is retained for as long as your account is active. Inactive accounts (no login for 12+ months) may be flagged for deletion. Listing data for sold/completed items may be retained in anonymised form for platform analytics.</p>
         <h3>7. Your Rights</h3>
         <p>You have the right to: (a) access all personal data we hold about you; (b) correct inaccurate information on your profile; (c) request complete deletion of your account and all associated data. To exercise any of these rights, email <a href="mailto:kswap.kiit@gmail.com" style="color:var(--accent);">kswap.kiit@gmail.com</a>. We will process requests within 7 business days.</p>
-        <h3>8. Safety & User Responsibility</h3>
-        <p>K-SWAP does not verify user identities beyond basic roll number format validation. You are solely responsible for assessing the trustworthiness of other users before engaging in any transaction. Never share sensitive personal information through the platform's chat. See our <a onclick="navigate('terms')" style="color:var(--accent); cursor:pointer;">Terms of Service</a> for full safety guidelines.</p>
+        <h3>8. Member Responsibility &amp; Platform Scope</h3>
+        <p>K-SWAP is a facilitated peer-to-peer marketplace. Members self-register using their institutional roll number. Access to the platform does not constitute identity or credential verification by K-SWAP. All parties are encouraged to exercise independent due diligence before engaging in any exchange. K-SWAP assumes no liability for the conduct of its members or the condition, authenticity, or availability of any listed item. Refer to our <a onclick="navigate('terms')" style="color:var(--accent); cursor:pointer;">Terms of Service</a> for complete community guidelines and platform policies.</p>
         <h3>9. Changes to This Policy</h3>
         <p>We may update this Privacy Policy periodically. Continued use of K-SWAP after changes constitutes acceptance.</p>
         <h3>10. Contact</h3>
@@ -1047,7 +1051,32 @@
 
 </div>
 
-<!-- ==================== EDIT PROFILE MODAL ==================== -->
+<!-- ==================== ADMIN PAGE ==================== -->
+<div id="page-admin" class="page" style="display:none;">
+  <div class="page-inner" style="padding-top:24px;">
+    <div class="page-title-bar">
+      <button class="back-btn" onclick="navigate('profile')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <h1 style="margin:0;font-size:20px;">🔐 Admin Panel</h1>
+      <div></div>
+    </div>
+    <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius);padding:12px 16px;margin:16px 0;font-size:13px;color:var(--danger);">
+      ⚠️ Restricted access. Actions taken here are permanent and logged.
+    </div>
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+      <div class="stat-card" style="text-align:center;padding:16px;"><div style="font-size:24px;font-weight:800;" id="admin-report-count">—</div><div style="font-size:12px;color:var(--text-muted);">Open Reports</div></div>
+      <div class="stat-card" style="text-align:center;padding:16px;"><div style="font-size:24px;font-weight:800;" id="admin-user-count">—</div><div style="font-size:12px;color:var(--text-muted);">Total Members</div></div>
+    </div>
+    <h2 style="font-size:16px;margin-bottom:12px;">🚩 Pending Reports</h2>
+    <div id="admin-reports-list">
+      <div class="empty-state"><div class="empty-icon">✅</div><h3>Loading reports...</h3></div>
+    </div>
+  </div>
+</div>
+
+
 <div class="modal-overlay" id="edit-profile-modal" onclick="closeEditProfile(event)">
   <div class="modal-sheet">
     <span class="modal-handle"></span>
@@ -1064,14 +1093,45 @@
       <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">School / Campus</label>
       <select id="edit-school">
         <option value="">Select School</option>
-        <option value="KIIT School of Engineering">School of Engineering</option>
-        <option value="KIIT School of Computer Application">School of Computer Application</option>
-        <option value="KIIT School of Management">School of Management</option>
-        <option value="KIIT School of Law">School of Law</option>
-        <option value="KIIT School of Architecture">School of Architecture</option>
-        <option value="KIIT School of Biotechnology">School of Biotechnology</option>
-        <option value="KIIT School of Medical Sciences">School of Medical Sciences</option>
-        <option value="Other">Other</option>
+        <optgroup label="💻 Engineering & Technology">
+          <option value="SCSE">SCSE — Computer Science &amp; Engineering (School 15)</option>
+          <option value="CSE">CSE — Computer Science &amp; Engineering (School 5/7)</option>
+          <option value="IT">IT — Information Technology</option>
+          <option value="ECE">ECE — Electronics &amp; Communication Engineering (School 6)</option>
+          <option value="EEE">EEE — Electrical &amp; Electronics Engineering (School 2)</option>
+          <option value="ME">ME — Mechanical Engineering (School 3)</option>
+          <option value="CE">CE — Civil Engineering (School 4)</option>
+          <option value="IE">IE — Industrial Engineering (School 5)</option>
+          <option value="ChE">Chemical Engineering</option>
+          <option value="Aerospace">Aerospace Engineering</option>
+        </optgroup>
+        <optgroup label="🧬 Sciences">
+          <option value="Biotechnology">Biotechnology (School 1)</option>
+          <option value="Applied Sciences">Applied Sciences</option>
+          <option value="Physics">Physics &amp; Applied Mathematics</option>
+        </optgroup>
+        <optgroup label="🏥 Health & Medical">
+          <option value="KSMST">KSMST — Medical Sciences &amp; Technology</option>
+          <option value="Nursing">School of Nursing</option>
+          <option value="Public Health">Public Health (KSPH)</option>
+        </optgroup>
+        <optgroup label="💼 Management & Law">
+          <option value="KSOM">KSOM — School of Management (MBA/BBA)</option>
+          <option value="MCA">School of Computer Application (MCA/BCA)</option>
+          <option value="Law">KIIT School of Law (BA LLB/BBA LLB)</option>
+        </optgroup>
+        <optgroup label="🎨 Design & Arts">
+          <option value="Architecture">School of Architecture (School 11)</option>
+          <option value="Fashion">School of Fashion Technology (School 13)</option>
+          <option value="Film">School of Film &amp; Media Sciences (School 14)</option>
+          <option value="Mass Comm">School of Journalism &amp; Mass Communication (School 12)</option>
+        </optgroup>
+        <optgroup label="🌏 Others">
+          <option value="Education">School of Education</option>
+          <option value="Rural Management">School of Rural Management</option>
+          <option value="Humanities">School of Humanities &amp; Social Sciences</option>
+          <option value="Other">Other / Not Listed</option>
+        </optgroup>
       </select>
     </div>
     <div class="input-wrap" style="margin-bottom:12px;">
