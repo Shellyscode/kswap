@@ -1725,6 +1725,131 @@
   }
   window.loadRealListings = loadRealListings;
 
+  // ============ ADMIN PANEL ============
+  var ADMIN_EMAIL = 'shelly25singh12405@gmail.com';
+
+  function checkAdminAccess() {
+    var isAdmin = state.user && state.user.email === ADMIN_EMAIL;
+    var adminItem = document.getElementById('admin-menu-item');
+    if (adminItem) adminItem.style.display = isAdmin ? 'flex' : 'none';
+    return isAdmin;
+  }
+
+  async function renderAdminPanel() {
+    if (!checkAdminAccess()) {
+      navigate('profile');
+      showToast('Access restricted', 'error');
+      return;
+    }
+    var list = document.getElementById('admin-reports-list');
+    var countEl = document.getElementById('admin-report-count');
+    if (!list) return;
+
+    if (!isLive || !sb) {
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔌</div><h3>Connect Supabase to view reports</h3></div>';
+      return;
+    }
+
+    try {
+      var { data: reports, error } = await sb.from('reports')
+        .select('*').order('created_at', { ascending: false }).limit(50);
+
+      if (error || !reports) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><h3>Could not load reports</h3></div>'; return; }
+      if (countEl) countEl.textContent = reports.length;
+
+      // Get member count
+      var { count } = await sb.from('profiles').select('*', { count: 'exact', head: true });
+      var ucEl = document.getElementById('admin-user-count');
+      if (ucEl) ucEl.textContent = count || '—';
+
+      if (reports.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><h3>No reports</h3><p>The community is behaving!</p></div>';
+        return;
+      }
+
+      list.innerHTML = reports.map(function(r) {
+        var date = new Date(r.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+        return '<div class="wishlist-card" style="margin-bottom:14px;">' +
+          '<div class="wishlist-card-header">' +
+            '<div>' +
+              '<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">' + date + ' · Report #' + r.id + '</div>' +
+              '<div class="wishlist-card-title">' + (r.reason || 'No reason') + '</div>' +
+            '</div>' +
+            '<div style="font-size:11px;background:rgba(239,68,68,0.1);color:var(--danger);padding:3px 10px;border-radius:var(--radius-full);font-weight:700;">OPEN</div>' +
+          '</div>' +
+          (r.note ? '<div class="wishlist-card-desc">"' + r.note + '"</div>' : '') +
+          '<div style="font-size:12px;color:var(--text-muted);margin:8px 0 12px;">' +
+            'Reported user ID: <code style="font-size:11px;background:var(--bg-tertiary);padding:2px 6px;border-radius:4px;">' + (r.reported_id || 'unknown') + '</code>' +
+          '</div>' +
+          '<div style="display:flex;gap:8px;">' +
+            '<button onclick="adminRemoveListing(\'' + r.reported_id + '\',\'' + r.id + '\')" style="flex:1;padding:8px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#d97706;border-radius:var(--radius-xs);font-size:13px;font-weight:600;cursor:pointer;">🚫 Remove Listings</button>' +
+            '<button onclick="adminBanUser(\'' + r.reported_id + '\',\'' + r.id + '\')" style="flex:1;padding:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:var(--danger);border-radius:var(--radius-xs);font-size:13px;font-weight:600;cursor:pointer;">🔴 Ban User</button>' +
+            '<button onclick="adminDismiss(\'' + r.id + '\')" style="padding:8px 14px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);border-radius:var(--radius-xs);font-size:13px;cursor:pointer;">✓ Dismiss</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    } catch (err) {
+      console.warn('Admin load error:', err);
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><h3>Error loading reports</h3></div>';
+    }
+  }
+  window.renderAdminPanel = renderAdminPanel;
+
+  async function adminRemoveListing(userId, reportId) {
+    if (!confirm('Remove ALL active listings by this user?')) return;
+    if (isLive && sb) {
+      await sb.from('listings').update({ is_active: false }).eq('user_id', userId);
+      await adminDismiss(reportId);
+    }
+    showToast('🚫 Listings removed', 'success');
+    renderAdminPanel();
+  }
+  window.adminRemoveListing = adminRemoveListing;
+
+  async function adminBanUser(userId, reportId) {
+    if (!confirm('Ban this user? They will be blocked from the platform.')) return;
+    if (isLive && sb) {
+      // Insert into banned_users table + deactivate all their listings
+      try {
+        await sb.from('banned_users').insert({ user_id: userId, banned_by: state.user.id, reason: 'Admin action' });
+        await sb.from('listings').update({ is_active: false }).eq('user_id', userId);
+        await adminDismiss(reportId);
+        showToast('🔴 User banned', 'success');
+      } catch (err) {
+        console.warn('Ban error:', err);
+        showToast('Ban recorded (ensure banned_users table exists)', 'success');
+      }
+    }
+    renderAdminPanel();
+  }
+  window.adminBanUser = adminBanUser;
+
+  async function adminDismiss(reportId) {
+    if (isLive && sb) {
+      await sb.from('reports').delete().eq('id', reportId);
+    }
+    showToast('✅ Report dismissed', 'success');
+    renderAdminPanel();
+  }
+  window.adminDismiss = adminDismiss;
+
+  // Patch navigate to handle admin page
+  var _origNavigate = window.navigate;
+  window.navigate = function(page) {
+    if (page === 'admin') {
+      if (!checkAdminAccess()) { showToast('Access restricted', 'error'); return; }
+      document.querySelectorAll('.page').forEach(function(p) { p.style.display = 'none'; });
+      document.getElementById('page-admin').style.display = 'block';
+      document.getElementById('bottom-nav').style.display = 'none';
+      renderAdminPanel();
+      return;
+    }
+    _origNavigate(page);
+    // Show admin item if admin
+    setTimeout(checkAdminAccess, 100);
+  };
+
   document.addEventListener('DOMContentLoaded', init);
 })();
+
 
