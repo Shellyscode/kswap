@@ -130,7 +130,7 @@
 
     // Bottom nav
     var nav = document.getElementById('bottom-nav');
-    var hideNav = ['landing', 'auth', 'chat-detail', 'detail'].indexOf(page) !== -1;
+    var hideNav = ['landing', 'auth', 'chat-detail', 'detail', 'terms', 'privacy'].indexOf(page) !== -1;
     nav.classList.toggle('visible', !hideNav);
 
     // Active nav item
@@ -524,12 +524,40 @@
         return i.title.toLowerCase().includes(q) || (i.description && i.description.toLowerCase().includes(q)) || i.seller.toLowerCase().includes(q);
       });
     }
+    // Apply advanced filters
+    if (activeFilters.type !== 'all') {
+      items = items.filter(function(i) { return i.type === activeFilters.type; });
+    }
+    if (activeFilters.condition !== 'all') {
+      items = items.filter(function(i) { return i.condition === activeFilters.condition; });
+    }
+    if (activeFilters.price !== 'all') {
+      items = items.filter(function(i) {
+        if (activeFilters.price === 'free') return i.type === 'free';
+        if (activeFilters.price === '0-500') return i.price >= 0 && i.price <= 500 && i.type !== 'free';
+        if (activeFilters.price === '500-2000') return i.price > 500 && i.price <= 2000;
+        if (activeFilters.price === '2000+') return i.price > 2000;
+        return true;
+      });
+    }
+    // Apply sort
+    if (activeSortOrder === 'price-asc') {
+      items = items.slice().sort(function(a, b) { return (a.price || 0) - (b.price || 0); });
+    } else if (activeSortOrder === 'price-desc') {
+      items = items.slice().sort(function(a, b) { return (b.price || 0) - (a.price || 0); });
+    } else if (activeSortOrder === 'views') {
+      items = items.slice().sort(function(a, b) { return (b.views || 0) - (a.views || 0); });
+    }
+    // Filter out sold items
+    items = items.filter(function(i) { return !soldIds || !soldIds.has(i.id); });
+
     if (items.length === 0) {
-      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">🔍</div><h3>No items found</h3><p>Try a different search or category</p></div>';
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">🔍</div><h3>No items found</h3><p>Try different filters or search terms</p></div>';
     } else {
       grid.innerHTML = items.map(function (l) { return cardHTML(l, false); }).join('');
     }
   }
+
 
   function handleSearch(val) {
     state.searchTerm = val;
@@ -964,8 +992,17 @@
       grid.style.display = 'none'; empty.style.display = 'block';
     } else {
       grid.style.display = 'grid'; empty.style.display = 'none';
-      grid.innerHTML = state.myListings.map(function (l) { return cardHTML(l, false); }).join('');
+      grid.innerHTML = state.myListings.map(function (l) {
+        var isSold = soldIds && soldIds.has(l.id);
+        return '<div class="my-listing-wrap">' +
+          cardHTML(l, false) +
+          (isSold
+            ? '<div style="text-align:center;padding:6px;font-size:12px;color:var(--danger);font-weight:600;">SOLD</div>'
+            : '<button class="mark-sold-btn" onclick="markAsSold(' + l.id + ', this)">✓ Mark as Sold</button>') +
+          '</div>';
+      }).join('');
     }
+
 
     // Saved tab
     var savedGrid = document.getElementById('saved-grid');
@@ -1119,6 +1156,10 @@
 
   // ============ INIT ============
   async function init() {
+    // Apply saved theme
+    var savedTheme = localStorage.getItem('kswap-theme') || 'dark';
+    applyTheme(savedTheme === 'light');
+
     // Check for existing session
     if (isLive && sb) {
       try {
@@ -1127,9 +1168,10 @@
           state.user = res.data.session.user;
           var profileRes = await sb.from('profiles').select('*').eq('id', res.data.session.user.id).single();
           state.profile = profileRes.data || { full_name: 'Student', roll_number: '', school: '', branch: '', year: '' };
-          // Load real listings
           await loadRealListings();
           navigate('home');
+          // Ask for push permission after a short delay
+          setTimeout(requestPushPermission, 3000);
         }
       } catch (err) {
         console.warn('Session check error:', err);
@@ -1137,5 +1179,289 @@
     }
   }
 
+  // ============ DARK / LIGHT MODE ============
+  function applyTheme(isLight) {
+    document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+    var toggle = document.getElementById('theme-toggle');
+    if (toggle) toggle.checked = !isLight; // checked = dark mode ON
+    localStorage.setItem('kswap-theme', isLight ? 'light' : 'dark');
+  }
+
+  function toggleTheme(isDarkChecked) {
+    applyTheme(!isDarkChecked);
+    showToast(isDarkChecked ? '🌙 Dark mode on' : '☀️ Light mode on', 'success');
+  }
+  window.toggleTheme = toggleTheme;
+
+  // ============ EDIT PROFILE ============
+  function openEditProfile() {
+    if (!state.profile) return;
+    var p = state.profile;
+    document.getElementById('edit-name').value = p.full_name || '';
+    document.getElementById('edit-bio').value = p.bio || '';
+    document.getElementById('edit-school').value = p.school || '';
+    document.getElementById('edit-branch').value = p.branch || '';
+    document.getElementById('edit-year').value = p.year || '';
+    document.getElementById('edit-profile-modal').classList.add('open');
+  }
+  window.openEditProfile = openEditProfile;
+
+  function closeEditProfile(e) {
+    if (!e || e.target === document.getElementById('edit-profile-modal')) {
+      document.getElementById('edit-profile-modal').classList.remove('open');
+    }
+  }
+  window.closeEditProfile = closeEditProfile;
+
+  async function saveEditProfile() {
+    var name = document.getElementById('edit-name').value.trim();
+    var bio = document.getElementById('edit-bio').value.trim();
+    var school = document.getElementById('edit-school').value;
+    var branch = document.getElementById('edit-branch').value.trim();
+    var year = document.getElementById('edit-year').value;
+
+    if (!name) { showToast('Please enter your name', 'error'); return; }
+
+    // Update state immediately
+    state.profile.full_name = name;
+    state.profile.bio = bio || state.profile.bio;
+    state.profile.school = school || state.profile.school;
+    state.profile.branch = branch || state.profile.branch;
+    state.profile.year = year || state.profile.year;
+
+    // Save to Supabase if live
+    if (isLive && sb && state.user) {
+      try {
+        await sb.from('profiles').update({
+          full_name: name,
+          bio: bio,
+          school: school,
+          branch: branch,
+          year: year,
+          updated_at: new Date().toISOString()
+        }).eq('id', state.user.id);
+      } catch (err) { console.warn('Profile update error:', err); }
+    }
+
+    document.getElementById('edit-profile-modal').classList.remove('open');
+    renderProfile();
+    showToast('✅ Profile updated!', 'success');
+  }
+  window.saveEditProfile = saveEditProfile;
+
+  // ============ FILTER SHEET ============
+  var activeFilters = { type: 'all', condition: 'all', price: 'all' };
+
+  function openFilterSheet() {
+    document.getElementById('filter-modal').classList.add('open');
+  }
+  window.openFilterSheet = openFilterSheet;
+
+  function closeFilterSheet(e) {
+    if (!e || e.target === document.getElementById('filter-modal')) {
+      document.getElementById('filter-modal').classList.remove('open');
+    }
+  }
+  window.closeFilterSheet = closeFilterSheet;
+
+  function toggleFilterChip(el, filterType) {
+    // Deselect all chips in same group
+    el.closest('.filter-chips').querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('selected'); });
+    el.classList.add('selected');
+  }
+  window.toggleFilterChip = toggleFilterChip;
+
+  function applyFilters() {
+    // Read selected chips
+    var typeChip = document.querySelector('#filter-modal .filter-chip.selected[data-filter="type"]');
+    var condChip = document.querySelector('#filter-modal .filter-chip.selected[data-filter="condition"]');
+    var priceChip = document.querySelector('#filter-modal .filter-chip.selected[data-filter="price"]');
+    activeFilters.type = typeChip ? typeChip.dataset.val : 'all';
+    activeFilters.condition = condChip ? condChip.dataset.val : 'all';
+    activeFilters.price = priceChip ? priceChip.dataset.val : 'all';
+
+    // Count active filters
+    var count = [activeFilters.type, activeFilters.condition, activeFilters.price].filter(function(v) { return v !== 'all'; }).length;
+    var badge = document.getElementById('filter-count-badge');
+    var btn = document.getElementById('filter-btn');
+    if (count > 0) {
+      badge.textContent = count; badge.style.display = 'inline-block';
+      btn.classList.add('active');
+    } else {
+      badge.style.display = 'none'; btn.classList.remove('active');
+    }
+
+    document.getElementById('filter-modal').classList.remove('open');
+    renderMarketplace();
+  }
+  window.applyFilters = applyFilters;
+
+  function resetFilters() {
+    activeFilters = { type: 'all', condition: 'all', price: 'all' };
+    document.querySelectorAll('#filter-modal .filter-chip').forEach(function(c) {
+      c.classList.toggle('selected', c.dataset.val === 'all');
+    });
+    document.getElementById('filter-count-badge').style.display = 'none';
+    document.getElementById('filter-btn').classList.remove('active');
+    document.getElementById('filter-modal').classList.remove('open');
+    renderMarketplace();
+  }
+  window.resetFilters = resetFilters;
+
+  // ============ SORT ============
+  var activeSortOrder = 'newest';
+
+  function applySort(val) {
+    activeSortOrder = val;
+    renderMarketplace();
+  }
+  window.applySort = applySort;
+
+  // ============ MARKET TAB SWITCH ============
+  function switchMarketTab(tab) {
+    var listingsPanel = document.getElementById('market-listings-panel');
+    var lookingPanel = document.getElementById('market-lookingfor-panel');
+    var listingsBtn = document.getElementById('tab-listings-btn');
+    var lookingBtn = document.getElementById('tab-lookingfor-btn');
+    if (tab === 'listings') {
+      listingsPanel.style.display = ''; lookingPanel.style.display = 'none';
+      listingsBtn.classList.add('active'); lookingBtn.classList.remove('active');
+    } else {
+      listingsPanel.style.display = 'none'; lookingPanel.style.display = '';
+      listingsBtn.classList.remove('active'); lookingBtn.classList.add('active');
+      renderWishlist();
+    }
+  }
+  window.switchMarketTab = switchMarketTab;
+
+  // ============ WISHLIST / LOOKING FOR ============
+  var demoWishlists = [
+    { id: 1, user_name: 'Priya S.', title: 'CLRS Algorithms Book (4th Edition)', max_budget: 400, description: 'Any condition okay. Need for placement prep. Please DM!', created_at: new Date(Date.now() - 3600000) },
+    { id: 2, user_name: 'Arjun T.', title: 'Wireless Mouse — any brand', max_budget: 300, description: 'Needs to be working. Budget is flexible for good condition.', created_at: new Date(Date.now() - 7200000) },
+    { id: 3, user_name: 'Sneha R.', title: 'White Lab Coat Size S', max_budget: 0, description: 'Happy to barter — have extra books and stationery.', created_at: new Date(Date.now() - 86400000) },
+  ];
+
+  function renderWishlist() {
+    var grid = document.getElementById('wishlist-grid');
+    if (!grid) return;
+    var items = demoWishlists;
+    if (items.length === 0) {
+      grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🔖</div><h3>No requests yet</h3><p>Be the first to post what you\'re looking for!</p></div>';
+      return;
+    }
+    grid.innerHTML = items.map(function(w) {
+      var budgetText = w.max_budget === 0 ? '🎁 Free / Barter' : 'Up to ₹' + w.max_budget;
+      var timeAgo = getTimeAgo(new Date(w.created_at));
+      return '<div class="wishlist-card">' +
+        '<div class="wishlist-card-header">' +
+          '<div class="wishlist-card-title">' + w.title + '</div>' +
+          '<div class="wishlist-card-budget">' + budgetText + '</div>' +
+        '</div>' +
+        (w.description ? '<div class="wishlist-card-desc">' + w.description + '</div>' : '') +
+        '<div class="wishlist-card-meta">' +
+          '<span>👤 ' + w.user_name + '</span>' +
+          '<span>🕐 ' + timeAgo + '</span>' +
+          '<button onclick="event.stopPropagation();showToast(\'Open chat to respond! 💬\',\'success\')" style="margin-left:auto;padding:5px 12px;background:var(--accent);color:#fff;border-radius:var(--radius-full);font-size:12px;font-weight:600;cursor:pointer;">💬 Respond</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  async function postWishlist() {
+    var title = document.getElementById('wl-title').value.trim();
+    var budget = parseInt(document.getElementById('wl-budget').value) || 0;
+    var desc = document.getElementById('wl-desc').value.trim();
+    if (!title) { showToast('Please describe what you\'re looking for', 'error'); return; }
+    if (!state.user) { showToast('Please log in to post a request', 'error'); return; }
+
+    var newItem = {
+      id: Date.now(), user_name: (state.profile && state.profile.full_name) || 'You',
+      title: title, max_budget: budget, description: desc, created_at: new Date()
+    };
+
+    // Save to Supabase if live
+    if (isLive && sb && state.user) {
+      try {
+        await sb.from('wishlists').insert({ user_id: state.user.id, user_name: newItem.user_name, title: title, max_budget: budget, description: desc });
+      } catch (err) { console.warn('Wishlist post error:', err); }
+    }
+
+    demoWishlists.unshift(newItem);
+    document.getElementById('wl-title').value = '';
+    document.getElementById('wl-budget').value = '';
+    document.getElementById('wl-desc').value = '';
+    renderWishlist();
+    showToast('✅ Request posted! The community will see it now.', 'success');
+  }
+  window.postWishlist = postWishlist;
+
+  // ============ MARK AS SOLD ============
+  var soldIds = new Set();
+
+  function markAsSold(id, btn) {
+    if (!confirm('Mark this item as sold? It will be hidden from the marketplace.')) return;
+    soldIds.add(id);
+
+    if (isLive && sb && state.user) {
+      sb.from('listings').update({ is_active: false }).eq('id', id).eq('user_id', state.user.id)
+        .then(function() {}).catch(function(e) { console.warn('Mark sold error:', e); });
+    }
+
+    // Add sold overlay to the card
+    var wrap = btn.closest('.my-listing-wrap');
+    if (wrap) {
+      var overlay = document.createElement('div');
+      overlay.className = 'sold-overlay';
+      overlay.innerHTML = '<span class="sold-badge-big">SOLD</span>';
+      wrap.querySelector('.listing-card').appendChild(overlay);
+      btn.style.display = 'none';
+    }
+    showToast('✅ Marked as sold! Hidden from marketplace.', 'success');
+  }
+  window.markAsSold = markAsSold;
+
+  // ============ PUSH NOTIFICATIONS ============
+  async function requestPushPermission() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
+    // Show our custom banner on home page
+    showNotifBanner();
+  }
+
+  function showNotifBanner() {
+    var homeInner = document.querySelector('#page-home .page-inner');
+    if (!homeInner || document.getElementById('notif-banner')) return;
+    var banner = document.createElement('div');
+    banner.className = 'notif-permission-banner'; banner.id = 'notif-banner';
+    banner.innerHTML = '<div class="banner-icon">🔔</div>' +
+      '<div class="banner-text"><p>Enable Notifications</p><small>Get alerted when someone messages you about a listing</small></div>' +
+      '<button class="banner-btn" onclick="enablePushNotifs()">Enable</button>';
+    homeInner.insertBefore(banner, homeInner.firstChild);
+  }
+
+  async function enablePushNotifs() {
+    var banner = document.getElementById('notif-banner');
+    try {
+      var permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        showToast('🔔 Notifications enabled!', 'success');
+        if (banner) banner.remove();
+        // Register SW and subscribe (basic - no VAPID for now)
+        if ('serviceWorker' in navigator) {
+          var reg = await navigator.serviceWorker.ready;
+          console.log('SW ready, push subscription would go here:', reg);
+        }
+      } else {
+        showToast('Notifications blocked — you can enable them in browser settings', 'error');
+        if (banner) banner.remove();
+      }
+    } catch (e) {
+      console.warn('Push permission error:', e);
+      if (banner) banner.remove();
+    }
+  }
+  window.enablePushNotifs = enablePushNotifs;
+
   document.addEventListener('DOMContentLoaded', init);
 })();
+
