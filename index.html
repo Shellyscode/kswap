@@ -2,6 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- ===== SECURITY HEADERS (via meta tags) ===== -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in;
+    connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co;
+    frame-ancestors 'none';
+    base-uri 'self';
+    form-action 'self';
+  ">
+  <!-- ===== END SECURITY HEADERS ===== -->
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>K-SWAP | Konnecting Kiitians — Campus Marketplace</title>
   <meta name="description" content="K-SWAP is the peer-to-peer campus marketplace for KIIT University. Buy, sell, barter textbooks, lab coats, cycles, and more. Zero fees. Only verified KIIT students.">
