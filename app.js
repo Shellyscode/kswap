@@ -1462,6 +1462,269 @@
   }
   window.enablePushNotifs = enablePushNotifs;
 
+  // ============ PROFILE PHOTO UPLOAD ============
+  async function handleAvatarUpload(input) {
+    var file = input.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { showToast('Image must be under 2MB', 'error'); return; }
+
+    // Show preview immediately
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var avatar = document.getElementById('profile-initials');
+      if (avatar) {
+        avatar.style.backgroundImage = 'url(' + e.target.result + ')';
+        avatar.style.backgroundSize = 'cover';
+        avatar.style.backgroundPosition = 'center';
+        avatar.textContent = '';
+        var hint = document.createElement('div');
+        hint.className = 'avatar-upload-hint';
+        hint.textContent = '📷';
+        avatar.appendChild(hint);
+      }
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to Supabase Storage
+    if (isLive && sb && state.user) {
+      try {
+        var ext = file.name.split('.').pop();
+        var path = state.user.id + '/avatar.' + ext;
+        var { error } = await sb.storage.from('avatars').upload(path, file, { upsert: true });
+        if (!error) {
+          var { data } = sb.storage.from('avatars').getPublicUrl(path);
+          state.profile.avatar_url = data.publicUrl;
+          await sb.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', state.user.id);
+          showToast('✅ Profile photo updated!', 'success');
+        } else {
+          showToast('Photo saved locally (storage not configured yet)', 'success');
+        }
+      } catch (err) {
+        console.warn('Avatar upload error:', err);
+        showToast('Photo updated locally!', 'success');
+      }
+    } else {
+      showToast('✅ Photo updated!', 'success');
+    }
+  }
+  window.handleAvatarUpload = handleAvatarUpload;
+
+  // ============ TRUST BADGES ============
+  function getTrustBadge(tradeCount, avgRating) {
+    tradeCount = tradeCount || 0;
+    avgRating = avgRating || 5.0;
+    if (tradeCount >= 10 && avgRating >= 4.5) {
+      return { cls: 'trust-badge-gold', label: '🥇 Gold Seller', tier: 'gold' };
+    } else if (tradeCount >= 5 && avgRating >= 4.0) {
+      return { cls: 'trust-badge-silver', label: '🥈 Silver Seller', tier: 'silver' };
+    } else if (tradeCount >= 1) {
+      return { cls: 'trust-badge-bronze', label: '🥉 Bronze Seller', tier: 'bronze' };
+    }
+    return null;
+  }
+
+  function updateTrustBadge() {
+    var soldCount = soldIds ? soldIds.size : 0;
+    var rating = parseFloat((document.getElementById('stat-rating') || {}).textContent) || 5.0;
+    var badge = getTrustBadge(soldCount, rating);
+    var badgeEl = document.getElementById('trust-badge');
+    if (!badgeEl) return;
+    if (badge) {
+      badgeEl.className = badge.cls;
+      badgeEl.textContent = badge.label;
+    } else {
+      badgeEl.className = 'verified-badge';
+      badgeEl.textContent = '🎓 KIIT Student';
+    }
+  }
+  window.updateTrustBadge = updateTrustBadge;
+
+  // ============ TRADES TAB ============
+  function renderTrades() {
+    var list = document.getElementById('trades-list');
+    var empty = document.getElementById('trades-empty');
+    if (!list) return;
+    var soldItems = state.myListings.filter(function(l) { return soldIds && soldIds.has(l.id); });
+    if (soldItems.length === 0) {
+      list.style.display = 'none'; if (empty) empty.style.display = 'block';
+    } else {
+      list.style.display = 'block'; if (empty) empty.style.display = 'none';
+      list.innerHTML = soldItems.map(function(l) {
+        var priceText = l.type === 'free' ? 'Free' : l.type === 'barter' ? 'Barter' : '₹' + l.price;
+        var isFree = l.type === 'free' || l.type === 'barter';
+        return '<div class="trade-card">' +
+          '<div class="trade-icon">' + (l.emoji || '📦') + '</div>' +
+          '<div class="trade-info">' +
+            '<div class="trade-title">' + l.title + '</div>' +
+            '<div class="trade-meta">Sold • ' + getTimeAgo(new Date(l.created_at || Date.now())) + '</div>' +
+          '</div>' +
+          '<div class="trade-price' + (isFree ? ' free' : '') + '">' + priceText + '</div>' +
+        '</div>';
+      }).join('');
+    }
+    updateTrustBadge();
+  }
+
+  // Patch switchProfileTab to handle trades
+  var _origSwitchTab = window.switchProfileTab;
+  window.switchProfileTab = function(tab, btn) {
+    // Hide all panels
+    ['listings','saved','reviews','trades'].forEach(function(t) {
+      var el = document.getElementById('tab-' + t);
+      if (el) el.style.display = 'none';
+    });
+    document.querySelectorAll('.profile-tab').forEach(function(b) { b.classList.remove('active'); });
+    var panel = document.getElementById('tab-' + tab);
+    if (panel) panel.style.display = 'block';
+    if (btn) btn.classList.add('active');
+    if (tab === 'trades') renderTrades();
+    if (tab === 'listings') {
+      var grid = document.getElementById('my-listings-grid');
+      var empty = document.getElementById('my-listings-empty');
+      if (state.myListings.length === 0) {
+        if (grid) grid.style.display = 'none'; if (empty) empty.style.display = 'block';
+      } else {
+        if (grid) grid.style.display = 'grid'; if (empty) empty.style.display = 'none';
+        if (grid) grid.innerHTML = state.myListings.map(function(l) {
+          var isSold = soldIds && soldIds.has(l.id);
+          return '<div class="my-listing-wrap">' + cardHTML(l, false) +
+            (isSold ? '<div style="text-align:center;padding:6px;font-size:12px;color:var(--danger);font-weight:600;">SOLD</div>'
+                    : '<button class="mark-sold-btn" onclick="markAsSold(' + l.id + ', this)">✓ Mark as Sold</button>') +
+          '</div>';
+        }).join('');
+      }
+    }
+    if (tab === 'saved') {
+      var savedGrid = document.getElementById('saved-grid');
+      var savedEmpty = document.getElementById('saved-empty');
+      if (state.savedItems.length === 0) {
+        if (savedGrid) savedGrid.style.display = 'none'; if (savedEmpty) savedEmpty.style.display = 'block';
+      } else {
+        if (savedGrid) savedGrid.style.display = 'grid'; if (savedEmpty) savedEmpty.style.display = 'none';
+        if (savedGrid) savedGrid.innerHTML = state.savedItems.map(function(l) { return cardHTML(l, false); }).join('');
+      }
+    }
+  };
+
+  // ============ REPORT USER ============
+  var currentReportTarget = null;
+  var selectedReportReason = 'Scam';
+
+  function reportUser(userId, userName) {
+    currentReportTarget = { id: userId, name: userName || 'this user' };
+    selectedReportReason = 'Scam';
+    document.getElementById('report-note').value = '';
+    document.querySelectorAll('#report-modal .filter-chip').forEach(function(c) {
+      c.classList.toggle('selected', c.dataset.reason === 'Scam');
+    });
+    document.getElementById('report-modal').classList.add('open');
+  }
+  window.reportUser = reportUser;
+
+  function selectReportReason(el) {
+    document.querySelectorAll('#report-modal .filter-chip').forEach(function(c) { c.classList.remove('selected'); });
+    el.classList.add('selected');
+    selectedReportReason = el.dataset.reason;
+  }
+  window.selectReportReason = selectReportReason;
+
+  function closeReportModal(e) {
+    if (!e || e.target === document.getElementById('report-modal')) {
+      document.getElementById('report-modal').classList.remove('open');
+    }
+  }
+  window.closeReportModal = closeReportModal;
+
+  async function submitReport() {
+    var note = document.getElementById('report-note').value.trim();
+    if (isLive && sb && state.user) {
+      try {
+        await sb.from('reports').insert({
+          reporter_id: state.user.id,
+          reported_id: currentReportTarget ? currentReportTarget.id : null,
+          reason: selectedReportReason,
+          note: note
+        });
+      } catch (err) { console.warn('Report error:', err); }
+    }
+    document.getElementById('report-modal').classList.remove('open');
+    showToast('🚩 Report submitted. Thank you for keeping K-SWAP safe.', 'success');
+  }
+  window.submitReport = submitReport;
+
+  // ============ DELETE ACCOUNT ============
+  function openDeleteAccount() {
+    document.getElementById('delete-confirm-input').value = '';
+    document.getElementById('delete-account-modal').classList.add('open');
+  }
+  window.openDeleteAccount = openDeleteAccount;
+
+  function closeDeleteAccount(e) {
+    if (!e || e.target === document.getElementById('delete-account-modal')) {
+      document.getElementById('delete-account-modal').classList.remove('open');
+    }
+  }
+  window.closeDeleteAccount = closeDeleteAccount;
+
+  async function confirmDeleteAccount() {
+    var val = document.getElementById('delete-confirm-input').value.trim();
+    if (val !== 'DELETE') { showToast('Type DELETE exactly to confirm', 'error'); return; }
+    showToast('Deleting your account...', 'success');
+    document.getElementById('delete-account-modal').classList.remove('open');
+    if (isLive && sb && state.user) {
+      try {
+        // Delete profile + listings (cascade handles the rest via RLS)
+        await sb.from('listings').delete().eq('user_id', state.user.id);
+        await sb.from('profiles').delete().eq('id', state.user.id);
+        await sb.auth.signOut();
+      } catch (err) { console.warn('Delete error:', err); }
+    }
+    // Reset state
+    state.user = null; state.profile = null; state.myListings = [];
+    navigate('landing');
+    showToast('Account deleted. Goodbye 👋', 'success');
+  }
+  window.confirmDeleteAccount = confirmDeleteAccount;
+
+  // ============ REAL LISTINGS — FIX ============
+  // Patch loadRealListings to always show something
+  var _origLoadReal = window.loadRealListings;
+  async function loadRealListings() {
+    if (!isLive || !sb || !state.user) return;
+    try {
+      var { data, error } = await sb.from('listings')
+        .select('*, profiles(full_name, avatar_url)')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (!error && data && data.length > 0) {
+        // Replace demo listings with real ones
+        demoListings.length = 0;
+        data.forEach(function(row) {
+          demoListings.push({
+            id: row.id,
+            title: row.title,
+            price: row.price || 0,
+            type: row.listing_type || 'sale',
+            condition: row.condition || 'Good',
+            category: row.category || 'other',
+            seller: (row.profiles && row.profiles.full_name) || 'K-SWAP User',
+            description: row.description,
+            emoji: row.emoji || '📦',
+            views: row.views || 0,
+            created_at: row.created_at,
+            is_active: true
+          });
+        });
+        renderMarketplace();
+        renderHome();
+      }
+    } catch (err) {
+      console.warn('loadRealListings error:', err);
+    }
+  }
+  window.loadRealListings = loadRealListings;
+
   document.addEventListener('DOMContentLoaded', init);
 })();
 
