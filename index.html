@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>K-SWAP | Konnecting Kiitians — Campus Marketplace</title>
+  <meta name="description" content="K-SWAP is the peer-to-peer campus marketplace for KIIT University. Buy, sell, barter textbooks, lab coats, cycles, and more. Zero fees. Only verified KIIT students.">
+  <meta name="theme-color" content="#07070d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- ====== TOAST ====== -->
+<div id="toast"></div>
+
+<!-- ====== RATING MODAL ====== -->
+<div id="modal-overlay" class="modal-overlay" onclick="closeModal()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <h2 id="modal-title">Rate Seller</h2>
+    <div class="star-rating" id="star-rating">
+      <span class="star" data-val="1" onclick="setRating(1)">★</span>
+      <span class="star" data-val="2" onclick="setRating(2)">★</span>
+      <span class="star" data-val="3" onclick="setRating(3)">★</span>
+      <span class="star" data-val="4" onclick="setRating(4)">★</span>
+      <span class="star" data-val="5" onclick="setRating(5)">★</span>
+    </div>
+    <textarea id="modal-review" class="modal-input" placeholder="Write a short review (optional)..." rows="3"></textarea>
+    <button class="btn-primary" onclick="submitRating()" style="margin-top:12px;">Submit Review</button>
+    <button class="btn-ghost" onclick="closeModal()" style="margin-top:8px;">Cancel</button>
+  </div>
+</div>
+
+<div id="app">
+
+  <!-- ==================== LANDING PAGE ==================== -->
+  <div id="landing" class="page active">
+    <!-- Landing Nav -->
+    <nav class="landing-nav">
+      <div class="landing-nav-inner">
+        <div class="landing-logo">
+          <span class="logo-text">K-SWAP</span>
+        </div>
+        <div class="landing-nav-btns">
+          <button class="btn-ghost-sm" onclick="navigate('auth')">Log In</button>
+          <button class="btn-accent-sm" onclick="showSignup()">Sign Up Free</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-glow hero-glow-1"></div>
+      <div class="hero-glow hero-glow-2"></div>
+      <div class="hero-content">
+        <div class="hero-badge">🚀 Built by KIIT Students, for KIIT Students</div>
+        <h1>The Marketplace<br>Built for <span class="gradient-text">Kiitians</span></h1>
+        <p class="hero-sub">Buy, sell, and barter campus essentials with your batchmates. Zero fees. Zero middlemen. Only verified KIIT students.</p>
+        <div class="hero-ctas">
+          <button class="btn-primary-lg" onclick="showSignup()">Get Started — It's Free →</button>
+          <button class="btn-outline-lg" onclick="navigate('auth')">Browse Marketplace</button>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><strong>500+</strong><span>Students</span></div>
+          <div class="hero-stat-divider"></div>
+          <div class="hero-stat"><strong>1,200+</strong><span>Listings</span></div>
+          <div class="hero-stat-divider"></div>
+          <div class="hero-stat"><strong>₹0</strong><span>Fees Ever</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="landing-section">
+      <div class="landing-inner">
+        <div class="section-label">Features</div>
+        <h2 class="section-title">Everything You Need,<br><span class="gradient-text">One Platform</span></h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon" style="background:rgba(139,92,246,0.12);">🛍️</div>
+            <h3>Buy & Sell</h3>
+            <p>List items in seconds. Set your price. Meet on campus. Done.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background:rgba(6,182,212,0.12);">🔄</div>
+            <h3>Barter System</h3>
+            <p>Don't want cash? Trade your textbook for a calculator. Barter anything.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background:rgba(16,185,129,0.12);">🎁</div>
+            <h3>Free Listings</h3>
+            <p>Graduating? Give away things you don't need. Help a junior out.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background:rgba(245,158,11,0.12);">💬</div>
+            <h3>Direct Chat</h3>
+            <p>Message sellers directly. Negotiate prices. No awkward phone calls.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background:rgba(239,68,68,0.12);">🔒</div>
+            <h3>KIIT Verified</h3>
+            <p>Only KIIT students with valid roll numbers. No outsiders. 100% safe.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background:rgba(168,85,247,0.12);">⭐</div>
+            <h3>Ratings & Reviews</h3>
+            <p>Rate every trade. Build trust. See seller ratings before you buy.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="landing-section landing-section-dark">
+      <div class="landing-inner">
+        <div class="section-label">How It Works</div>
+        <h2 class="section-title">Start Trading in<br><span class="gradient-text">4 Simple Steps</span></h2>
+        <div class="steps-container">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h3>Sign Up with Roll Number</h3>
+              <p>Enter your KIIT roll number. We verify you're a real student through your @kiit.ac.in email.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h3>List or Browse Items</h3>
+              <p>Post what you want to sell, barter, or give free. Or browse what others have listed.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h3>Chat & Negotiate</h3>
+              <p>Message the seller. Send counter offers. Agree on a price and meetup spot.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <h3>Meet & Trade</h3>
+              <p>Meet at a campus location. Exchange items. Rate each other. Done! ✅</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- What You Can Trade -->
+    <section class="landing-section">
+      <div class="landing-inner">
+        <div class="section-label">Categories</div>
+        <h2 class="section-title">What Can You <span class="gradient-text">Trade?</span></h2>
+        <p class="section-sub">From textbooks to tech gadgets — if a Kiitian needs it, it's on K-SWAP.</p>
+        <div class="trade-grid">
+          <div class="trade-card" style="background:linear-gradient(135deg, rgba(102,126,234,0.15), rgba(118,75,162,0.15));">
+            <span class="trade-emoji">📚</span><span>Textbooks</span>
+          </div>
+          <div class="trade-card" style="background:linear-gradient(135deg, rgba(226,232,240,0.1), rgba(148,163,184,0.1));">
+            <span class="trade-emoji">🥼</span><span>Lab Coats</span>
+          </div>
+          <div class="trade-card" style="background:linear-gradient(135deg, rgba(16,185,129,0.15), rgba(6,182,212,0.15));">
+            <span class="trade-emoji">🚲</span><span>Cycles</span>
+          </div>
+          <div class="trade-card" style="background:linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.15));">
+            <span class="trade-emoji">💻</span><span>Tech & Gadgets</span>
+          </div>
+          <div class="trade-card" style="background:linear-gradient(135deg, rgba(236,72,153,0.15), rgba(139,92,246,0.15));">
+            <span class="trade-emoji">🏠</span><span>Room Stuff</span>
+          </div>
+          <div class="trade-card" style="background:linear-gradient(135deg, rgba(245,158,11,0.15), rgba(132,204,22,0.15));">
+            <span class="trade-emoji">📝</span><span>Notes & PYQs</span>
+          </div>
+          <div class="trade-card" style="background:linear-gradient(135deg, rgba(6,182,212,0.15), rgba(59,130,246,0.15));">
+            <span class="trade-emoji">👕</span><span>Clothing</span>
+          </div>
+          <div class="trade-card" style="background:linear-gradient(135deg, rgba(239,68,68,0.15), rgba(245,158,11,0.15));">
+            <span class="trade-emoji">🎮</span><span>Gaming</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="landing-section landing-section-dark" id="landing-faq">
+      <div class="landing-inner">
+        <div class="section-label">FAQ</div>
+        <h2 class="section-title">Frequently Asked <span class="gradient-text">Questions</span></h2>
+        <div class="faq-list">
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q"><h3>Is K-SWAP free to use?</h3><span class="faq-toggle">+</span></div>
+            <div class="faq-a"><p>100% free. No listing fees, no commission, no hidden charges. We built this for students, not for profit.</p></div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q"><h3>How do I know sellers are real KIIT students?</h3><span class="faq-toggle">+</span></div>
+            <div class="faq-a"><p>Every user signs up with their KIIT roll number and @kiit.ac.in email. We verify each account, so only authentic KIIT students can use K-SWAP. Look for the ✓ Verified badge on profiles.</p></div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q"><h3>What is bartering and how does it work?</h3><span class="faq-toggle">+</span></div>
+            <div class="faq-a"><p>Bartering means trading items without money. For example, you can trade your 3rd semester books for someone's calculator. When listing an item, select "Barter" and describe what you want in exchange.</p></div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q"><h3>Where do we meet to exchange items?</h3><span class="faq-toggle">+</span></div>
+            <div class="faq-a"><p>Always meet in public campus locations — canteens, library lobbies, campus gates. Each listing shows a suggested meetup spot. Never go to someone's room alone.</p></div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q"><h3>What if someone scams me?</h3><span class="faq-toggle">+</span></div>
+            <div class="faq-a"><p>Since every user is a verified KIIT student, scams are rare and traceable. You can report any user, and we'll take action. Always check seller ratings before trading. If something goes wrong, email us at kswap.kiit@gmail.com.</p></div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q"><h3>Can alumni use K-SWAP?</h3><span class="faq-toggle">+</span></div>
+            <div class="faq-a"><p>Currently, K-SWAP is for active KIIT students only. We may open it to alumni in the future for mentorship and giving away items to juniors.</p></div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q"><h3>How is K-SWAP different from OLX or Facebook Marketplace?</h3><span class="faq-toggle">+</span></div>
+            <div class="faq-a"><p>K-SWAP is exclusively for KIIT students. Every user is verified. Meetups happen on campus. There are no random strangers. Plus, we have bartering — something no other platform offers for campus trade.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Banner -->
+    <section class="landing-section">
+      <div class="landing-inner">
+        <div class="cta-banner">
+          <h2>Ready to Start Trading?</h2>
+          <p>Join hundreds of Kiitians already saving money on campus essentials.</p>
+          <button class="btn-primary-lg" onclick="showSignup()" style="max-width:320px;">Create Your Free Account →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+      <div class="landing-inner">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <h3 class="gradient-text" style="font-size:24px; font-weight:900;">K-SWAP</h3>
+            <p>Konnecting Kiitians — The peer-to-peer campus marketplace built by KIIT students.</p>
+            <div class="footer-social">
+              <a href="mailto:kswap.kiit@gmail.com" title="Email">📧</a>
+              <a href="#" title="Instagram">📸</a>
+              <a href="#" title="LinkedIn">💼</a>
+            </div>
+          </div>
+          <div class="footer-links">
+            <h4>Platform</h4>
+            <a onclick="navigate('auth')">Browse Marketplace</a>
+            <a onclick="showSignup()">Create Account</a>
+            <a onclick="scrollToFaq()">FAQ</a>
+          </div>
+          <div class="footer-links">
+            <h4>Company</h4>
+            <a onclick="navigateFooter('about')">About K-SWAP</a>
+            <a onclick="navigateFooter('terms')">Terms of Service</a>
+            <a onclick="navigateFooter('privacy')">Privacy Policy</a>
+          </div>
+          <div class="footer-links">
+            <h4>Contact</h4>
+            <a href="mailto:kswap.kiit@gmail.com">kswap.kiit@gmail.com</a>
+            <a>KIIT University, Bhubaneswar</a>
+            <a>Odisha, India</a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>Made with ❤️ at KIIT University · © 2025 K-SWAP. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ==================== AUTH PAGE ==================== -->
+  <div id="page-auth" class="page">
+    <div class="auth-wrapper">
+      <div class="auth-card">
+        <div class="auth-logo">
+          <h1>K-SWAP</h1>
+          <p>Konnecting Kiitians</p>
+        </div>
+
+        <!-- Login -->
+        <form id="form-login" class="auth-form active" onsubmit="handleLogin(event)">
+          <div id="login-step-1">
+            <div class="input-group">
+              <label>Email</label>
+              <div class="input-wrap">
+                <input type="email" id="login-email" placeholder="yourname@gmail.com" required>
+              </div>
+              <small class="input-hint">The personal email you signed up with</small>
+            </div>
+            <button type="submit" class="btn-primary" id="btn-login">Send OTP →</button>
+            <div class="auth-toggle">New here? <a onclick="toggleAuth('signup')">Create Account</a></div>
+          </div>
+          
+          <div id="login-step-2" style="display:none;">
+            <p style="font-size:14px; color:var(--text-secondary); margin-bottom:20px;">We sent a 6-digit code to your email.</p>
+            <div class="input-group">
+              <label>Enter OTP Code</label>
+              <div class="input-wrap">
+                <input type="text" id="login-otp" placeholder="123456" inputmode="numeric" maxlength="6">
+              </div>
+            </div>
+            <button type="button" class="btn-primary" id="btn-verify-login" onclick="verifyLoginOtp()">Verify & Log In</button>
+            <div class="auth-toggle"><a onclick="resetLoginForm()">← Back</a></div>
+          </div>
+        </form>
+
+        <!-- Signup -->
+        <form id="form-signup" class="auth-form" onsubmit="handleSignup(event)">
+          <div id="signup-step-1">
+            <div class="input-group">
+              <label>Roll Number</label>
+              <div class="input-wrap">
+                <input type="text" id="signup-roll" placeholder="Enter your KIIT roll number" inputmode="numeric" required oninput="liveRollCheck(this)">
+                <span class="input-suffix" id="roll-suffix-display">@kiit.ac.in</span>
+              </div>
+              <small class="input-hint" id="roll-hint">Only currently enrolled KIIT students are eligible · Alumni accounts are not permitted</small>
+            </div>
+            <div class="input-group">
+              <label>Personal Email <span style="background:rgba(16,185,129,0.12); color:var(--success); font-size:10px; padding:2px 8px; border-radius:100px; margin-left:6px; font-weight:700;">OTP SENT HERE</span></label>
+              <div class="input-wrap">
+                <input type="email" id="signup-email" placeholder="yourname@gmail.com" required>
+              </div>
+              <small class="input-hint">Use Gmail or any personal email — <span style="color:var(--danger);">not</span> your KIIT email</small>
+            </div>
+            <div class="input-group">
+              <label>Full Name</label>
+              <div class="input-wrap">
+                <input type="text" id="signup-name" placeholder="Your full name" required>
+              </div>
+            </div>
+            <div class="input-row">
+              <div class="input-group" style="flex:1;">
+                <label>School</label>
+                <div class="input-wrap">
+                  <select id="signup-school" required>
+                    <option value="">Select</option>
+                    <option value="SOEE">SOEE</option>
+                    <option value="SCSE">SCSE</option>
+                    <option value="SCA">SCA</option>
+                    <option value="SMEE">SMEE</option>
+                    <option value="SCEE">SCEE</option>
+                    <option value="SBIOM">SBIOM</option>
+                    <option value="SLSH">SLSH</option>
+                    <option value="KSOM">KSOM</option>
+                    <option value="KSPH">KSPH</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div class="input-group" style="flex:1;">
+                <label>Year</label>
+                <div class="input-wrap">
+                  <select id="signup-year" required>
+                    <option value="">Select</option>
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                    <option value="5th Year">5th Year</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="input-group">
+              <label>Branch</label>
+              <div class="input-wrap">
+                <input type="text" id="signup-branch" placeholder="e.g. CSE, ECE, IT" required>
+              </div>
+            </div>
+            <div style="margin:16px 0 12px; display:flex; align-items:flex-start; gap:10px;">
+              <input type="checkbox" id="signup-agree" style="margin-top:3px; accent-color:var(--accent); width:16px; height:16px; flex-shrink:0; cursor:pointer;">
+              <label for="signup-agree" style="font-size:12px; color:var(--text-muted); line-height:1.5; cursor:pointer;">I agree to the <a onclick="navigate('terms')" style="color:var(--accent); font-weight:600; cursor:pointer;">Terms of Service</a> and <a onclick="navigate('privacy')" style="color:var(--accent); font-weight:600; cursor:pointer;">Privacy Policy</a>. I understand that K-SWAP is a peer-to-peer platform and does not verify the identity, credibility, or intentions of its users. All transactions are at my own risk.</label>
+            </div>
+            <button type="submit" class="btn-primary" id="btn-signup">Send OTP →</button>
+            <div class="auth-toggle">Already have an account? <a onclick="toggleAuth('login')">Log In</a></div>
+          </div>
+          
+          <div id="signup-step-2" style="display:none;">
+            <p style="font-size:14px; color:var(--text-secondary); margin-bottom:20px;">We sent a 6-digit code to your email.</p>
+            <div class="input-group">
+              <label>Enter OTP Code</label>
+              <div class="input-wrap">
+                <input type="text" id="signup-otp" placeholder="123456" inputmode="numeric" maxlength="6">
+              </div>
+            </div>
+            <button type="button" class="btn-primary" id="btn-verify-signup" onclick="verifySignupOtp()">Verify & Create Account</button>
+            <div class="auth-toggle"><a onclick="resetSignupForm()">← Back</a></div>
+          </div>
+        </form>
+
+        <!-- Forgot Password (Hidden since OTP doesn't use passwords, but kept for compatibility) -->
+        <form id="form-forgot" class="auth-form" onsubmit="event.preventDefault(); toggleAuth('login');">
+          <p style="font-size:14px; color:var(--text-secondary); margin-bottom:20px;">We've switched to passwordless login! Just use your roll number to receive an OTP.</p>
+          <button type="button" class="btn-primary" onclick="toggleAuth('login')">Go to Login →</button>
+        </form>
+
+        <p class="auth-note">🔒 Only currently enrolled KIIT students can sign up · Alumni not permitted</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== HOME PAGE ==================== -->
+  <div id="page-home" class="page">
+    <div class="page-inner">
+      <!-- Top bar -->
+      <div class="top-bar">
+        <div>
+          <h1 class="greeting">Hey, <span id="home-name" class="gradient-text">there</span> 👋</h1>
+          <p class="greeting-sub">Find what you need, sell what you don't.</p>
+        </div>
+        <button class="btn-icon notif-btn" onclick="navigate('notifications')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="notif-dot" id="notif-dot"></span>
+        </button>
+      </div>
+
+      <!-- Search -->
+      <div class="search-bar" onclick="navigate('market')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search books, lab coats, cycles..." readonly>
+        <button class="search-btn-circle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+      </div>
+
+      <!-- Categories -->
+      <div class="pills" style="margin-top:16px;">
+        <span class="pill active" onclick="filterHome('all')">🔥 All</span>
+        <span class="pill" onclick="filterHome('books')">📚 Books</span>
+        <span class="pill" onclick="filterHome('labcoats')">🥼 Lab Coats</span>
+        <span class="pill" onclick="filterHome('tech')">💻 Tech</span>
+        <span class="pill" onclick="filterHome('cycles')">🚲 Cycles</span>
+        <span class="pill" onclick="filterHome('room')">🏠 Room</span>
+        <span class="pill" onclick="filterHome('notes')">📝 Notes</span>
+        <span class="pill" onclick="filterHome('clothing')">👕 Clothing</span>
+        <span class="pill" onclick="filterHome('gaming')">🎮 Gaming</span>
+      </div>
+
+      <!-- Daily Pick -->
+      <div class="section-header"><h2>⭐ Daily Pick</h2></div>
+      <div id="daily-pick" class="daily-pick-card"></div>
+
+      <!-- Trending -->
+      <div class="section-header">
+        <h2>🔥 Trending Now</h2>
+        <a onclick="navigate('market')" class="see-all">See All →</a>
+      </div>
+      <div class="h-scroll" id="trending-scroll"></div>
+
+      <!-- Recent -->
+      <div class="section-header">
+        <h2>🕐 Recently Posted</h2>
+        <a onclick="navigate('market')" class="see-all">See All →</a>
+      </div>
+      <div class="listing-grid" id="recent-grid"></div>
+    </div>
+  </div>
+
+  <!-- ==================== MARKETPLACE PAGE ==================== -->
+  <div id="page-market" class="page">
+    <div class="page-inner">
+      <div class="page-title-bar">
+        <div>
+          <h1>Marketplace</h1>
+          <p>Browse, filter, and discover items</p>
+        </div>
+        <button class="btn-icon notif-btn" onclick="navigate('notifications')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="notif-dot" id="notif-dot-2"></span>
+        </button>
+      </div>
+      <div class="search-bar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="market-search" placeholder="Search items..." oninput="handleSearch(this.value)">
+        <button class="search-btn-circle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+      </div>
+      <div class="pills" style="margin:16px 0;">
+        <span class="pill active" data-cat="all" onclick="marketFilter('all', this)">All</span>
+        <span class="pill" data-cat="books" onclick="marketFilter('books', this)">📚 Books</span>
+        <span class="pill" data-cat="labcoats" onclick="marketFilter('labcoats', this)">🥼 Lab Coats</span>
+        <span class="pill" data-cat="tech" onclick="marketFilter('tech', this)">💻 Tech</span>
+        <span class="pill" data-cat="cycles" onclick="marketFilter('cycles', this)">🚲 Cycles</span>
+        <span class="pill" data-cat="room" onclick="marketFilter('room', this)">🏠 Room</span>
+        <span class="pill" data-cat="notes" onclick="marketFilter('notes', this)">📝 Notes</span>
+        <span class="pill" data-cat="clothing" onclick="marketFilter('clothing', this)">👕 Clothing</span>
+        <span class="pill" data-cat="gaming" onclick="marketFilter('gaming', this)">🎮 Gaming</span>
+      </div>
+      <div class="listing-grid" id="market-grid"></div>
+    </div>
+  </div>
+
+  <!-- ==================== ITEM DETAIL PAGE ==================== -->
+  <div id="page-detail" class="page" style="padding-bottom:100px;">
+    <div class="detail-top-bar">
+      <button class="btn-icon" onclick="goBack()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+      </button>
+      <button class="btn-icon" id="detail-heart-btn" onclick="toggleWishlist()">
+        <span id="detail-heart" style="font-size:20px;">♡</span>
+      </button>
+    </div>
+    <div id="detail-image" class="detail-image"></div>
+    <div class="detail-body">
+      <div class="detail-badges">
+        <span class="badge" id="detail-badge"></span>
+        <span class="badge badge-condition" id="detail-condition-badge"></span>
+      </div>
+      <h1 id="detail-title" class="detail-title">Item Name</h1>
+      <div id="detail-price" class="detail-price">₹0</div>
+      <div class="detail-meta">
+        <span>📍 <span id="detail-location">Campus</span></span>
+        <span>🕐 <span id="detail-time">Just now</span></span>
+        <span>👁️ <span id="detail-views">0</span> views</span>
+      </div>
+      <div class="detail-section">
+        <h3>Description</h3>
+        <p id="detail-desc"></p>
+      </div>
+      <div class="detail-section" id="detail-barter-section" style="display:none;">
+        <h3>Looking to Exchange For</h3>
+        <p id="detail-barter-wants"></p>
+      </div>
+      <!-- Seller Card -->
+      <div class="detail-seller glass" id="detail-seller-card">
+        <div class="seller-left">
+          <div class="seller-avatar" id="detail-seller-avatar">R</div>
+          <div>
+            <h3 id="detail-seller-name">Seller</h3>
+            <p id="detail-seller-info">KIIT Student</p>
+          </div>
+        </div>
+        <div class="seller-rating">
+          <span>⭐</span>
+          <span id="detail-seller-rating">5.0</span>
+        </div>
+      </div>
+      <!-- Related Items -->
+      <div class="section-header" style="margin-top:24px;"><h2>Similar Items</h2></div>
+      <div class="h-scroll" id="detail-related"></div>
+    </div>
+    <!-- Fixed Action Bar -->
+    <div class="detail-actions-bar">
+      <button class="btn-primary" onclick="messageFromDetail()" style="flex:2;">💬 Message Seller</button>
+      <button class="btn-secondary" onclick="shareItem()" style="flex:1;">🔗 Share</button>
+    </div>
+  </div>
+
+  <!-- ==================== POST LISTING PAGE ==================== -->
+  <div id="page-post" class="page">
+    <div class="page-inner" style="padding-top:24px;">
+      <h1 class="page-heading">Post a Listing</h1>
+      <p class="page-subheading">Share something with the KIIT community</p>
+      <form id="form-post" onsubmit="handlePost(event)">
+        <!-- Image Upload Area -->
+        <div class="img-upload" id="img-upload-area" onclick="document.getElementById('post-images').click()">
+          <input type="file" id="post-images" accept="image/*" multiple style="display:none;" onchange="handleImagePreview(this)">
+          <div class="img-upload-placeholder" id="img-upload-placeholder">
+            <span style="font-size:36px;">📸</span>
+            <p>Tap to add photos</p>
+            <small>Add up to 4 photos. First one is the cover.</small>
+          </div>
+          <div class="img-preview-row" id="img-preview-row" style="display:none;"></div>
+        </div>
+        <div class="input-group">
+          <label>Item Name *</label>
+          <div class="input-wrap"><input type="text" id="post-title" placeholder="e.g. Engineering Mathematics textbook" required></div>
+        </div>
+        <div class="input-group">
+          <label>Category *</label>
+          <div class="input-wrap">
+            <select id="post-category" required>
+              <option value="">Select category</option>
+              <option value="books">📚 Books & Textbooks</option>
+              <option value="labcoats">🥼 Lab Coats & Uniforms</option>
+              <option value="tech">💻 Tech & Electronics</option>
+              <option value="cycles">🚲 Cycles</option>
+              <option value="room">🏠 Room & Hostel</option>
+              <option value="notes">📝 Study Materials & PYQs</option>
+              <option value="clothing">👕 Clothing & Merch</option>
+              <option value="gaming">🎮 Gaming</option>
+              <option value="other">📦 Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Listing Type *</label>
+          <div class="type-selector">
+            <div class="type-btn active-sale" id="type-sale" onclick="selectType('sale')">💰 Sale</div>
+            <div class="type-btn" id="type-barter" onclick="selectType('barter')">🔄 Barter</div>
+            <div class="type-btn" id="type-free" onclick="selectType('free')">🎁 Free</div>
+          </div>
+          <input type="hidden" id="post-type" value="sale">
+        </div>
+        <div class="input-group" id="price-group">
+          <label>Price (₹) *</label>
+          <div class="input-wrap"><input type="number" id="post-price" placeholder="e.g. 250" min="0"></div>
+        </div>
+        <div class="input-group" id="barter-group" style="display:none;">
+          <label>What do you want in exchange?</label>
+          <div class="input-wrap"><input type="text" id="post-barter" placeholder="e.g. Any CSE 4th sem book"></div>
+        </div>
+        <div class="input-group">
+          <label>Condition</label>
+          <div class="input-wrap">
+            <select id="post-condition">
+              <option value="Like New">Like New</option>
+              <option value="Good" selected>Good</option>
+              <option value="Fair">Fair</option>
+              <option value="Well Used">Well Used</option>
+            </select>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Description</label>
+          <div class="input-wrap"><textarea id="post-desc" placeholder="Describe your item — condition, why you're selling, any extras..."></textarea></div>
+        </div>
+        <div class="input-group">
+          <label>Meetup Location</label>
+          <div class="input-wrap"><input type="text" id="post-location" placeholder="e.g. Campus 6 Gate, KP-5 Canteen"></div>
+        </div>
+        <button type="submit" class="btn-primary" style="margin-top:8px;">Post Listing →</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== CHATS LIST PAGE ==================== -->
+  <div id="page-chats" class="page">
+    <div class="page-inner" style="padding-top:24px;">
+      <h1 class="page-heading">Messages</h1>
+      <p class="page-subheading">Negotiate, counter-offer, and close deals</p>
+      <div id="chats-list"></div>
+      <div id="chats-empty" class="empty-state" style="display:none;">
+        <div class="empty-icon">💬</div>
+        <h3>No conversations yet</h3>
+        <p>Start chatting by tapping "Message Seller" on any listing</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CHAT DETAIL PAGE ==================== -->
+  <div id="page-chat-detail" class="page" style="padding-bottom:80px;">
+    <div class="chat-header">
+      <button class="btn-icon" onclick="navigate('chats')" style="width:36px;height:36px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+      </button>
+      <div class="chat-avatar-sm" id="cd-avatar"></div>
+      <div style="flex:1;">
+        <h2 id="cd-name" style="font-size:15px; font-weight:600;">Chat</h2>
+        <p id="cd-item" style="font-size:12px; color:var(--text-muted);">Item</p>
+      </div>
+      <button class="btn-icon" onclick="openRatingModal()" style="width:36px;height:36px;" title="Rate this person">
+        <span style="font-size:16px;">⭐</span>
+      </button>
+    </div>
+    <div style="padding:8px 16px; background:rgba(245,158,11,0.06); border-bottom:1px solid rgba(245,158,11,0.15);">
+      <p style="font-size:11px; color:var(--warning); line-height:1.5; text-align:center;">🛡️ <strong>Safety Reminder:</strong> Always meet in public campus locations. Never share personal financial details. K-SWAP does not verify users — exercise caution and trust your judgement.</p>
+    </div>
+    <div class="chat-actions">
+      <button onclick="sendCounterOffer()">💰 Counter Offer</button>
+      <button class="accept-btn" onclick="acceptDeal()">✅ Accept Deal</button>
+      <button onclick="reportUser()">🚩 Report</button>
+    </div>
+    <div class="chat-messages" id="cd-messages"></div>
+    <div class="chat-input-bar">
+      <input type="text" id="chat-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()">
+      <button class="send-btn" onclick="sendMessage()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== NOTIFICATIONS PAGE ==================== -->
+  <div id="page-notifications" class="page">
+    <div class="page-inner" style="padding-top:24px;">
+      <div class="page-title-bar">
+        <h1 class="page-heading" style="margin:0;">Notifications</h1>
+        <a onclick="clearNotifications()" class="see-all" style="font-size:13px;">Mark all read</a>
+      </div>
+      <div id="notif-list" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- ==================== PROFILE PAGE ==================== -->
+  <div id="page-profile" class="page" style="padding-top:0;">
+    <div class="profile-cover"></div>
+    <div class="profile-info">
+      <div class="profile-avatar" id="profile-initials">K</div>
+      <div class="profile-name">
+        <h1>
+          <span id="profile-fullname">KIIT Student</span>
+          <span class="verified-badge">✓ Verified</span>
+        </h1>
+        <p id="profile-details">Roll No • School • Branch • Year</p>
+      </div>
+      <div class="profile-bio" id="profile-bio">Ready to trade on K-SWAP! 🚀</div>
+      <div class="profile-stats">
+        <div class="stat-card"><div class="stat-val" id="stat-listed">0</div><div class="stat-label">Listed</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-sold">0</div><div class="stat-label">Sold</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-saved">0</div><div class="stat-label">Saved</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-rating">5.0</div><div class="stat-label">Rating</div></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="profile-tabs">
+      <button class="profile-tab active" onclick="switchProfileTab('listings', this)">📦 My Listings</button>
+      <button class="profile-tab" onclick="switchProfileTab('saved', this)">♥ Saved</button>
+      <button class="profile-tab" onclick="switchProfileTab('reviews', this)">⭐ Reviews</button>
+    </div>
+    <div class="profile-tab-content" id="tab-listings">
+      <div id="my-listings-grid" class="listing-grid" style="padding:0 20px;"></div>
+      <div id="my-listings-empty" class="empty-state">
+        <div class="empty-icon">📦</div>
+        <h3>No listings yet</h3>
+        <p>Post your first item and start trading!</p>
+        <button class="btn-primary" style="max-width:200px; margin:16px auto 0;" onclick="navigate('post')">Post Now</button>
+      </div>
+    </div>
+    <div class="profile-tab-content" id="tab-saved" style="display:none;">
+      <div id="saved-grid" class="listing-grid" style="padding:0 20px;"></div>
+      <div id="saved-empty" class="empty-state">
+        <div class="empty-icon">♡</div>
+        <h3>No saved items</h3>
+        <p>Tap the heart icon on listings to save them here</p>
+      </div>
+    </div>
+    <div class="profile-tab-content" id="tab-reviews" style="display:none;">
+      <div id="reviews-list" style="padding:0 20px;"></div>
+      <div id="reviews-empty" class="empty-state">
+        <div class="empty-icon">⭐</div>
+        <h3>No reviews yet</h3>
+        <p>Reviews will appear after you complete trades</p>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="profile-section">
+      <h2 style="padding:0 20px;">⚙️ Settings</h2>
+      <div style="padding:0 20px;">
+        <div class="settings-item" onclick="navigate('about')">
+          <div class="si-left"><div class="si-icon" style="background:rgba(139,92,246,0.12);">ℹ️</div><div class="si-text"><h3>About K-SWAP</h3><p>Mission, team & contact</p></div></div>
+          <div class="si-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="navigate('faq-page')">
+          <div class="si-left"><div class="si-icon" style="background:rgba(6,182,212,0.12);">❓</div><div class="si-text"><h3>FAQ & Help</h3><p>Common questions answered</p></div></div>
+          <div class="si-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="window.open('mailto:kswap.kiit@gmail.com')">
+          <div class="si-left"><div class="si-icon" style="background:rgba(16,185,129,0.12);">📧</div><div class="si-text"><h3>Contact Support</h3><p>kswap.kiit@gmail.com</p></div></div>
+          <div class="si-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="shareApp()">
+          <div class="si-left"><div class="si-icon" style="background:rgba(245,158,11,0.12);">🔗</div><div class="si-text"><h3>Share K-SWAP</h3><p>Invite your batchmates</p></div></div>
+          <div class="si-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="navigate('terms')">
+          <div class="si-left"><div class="si-icon" style="background:rgba(100,116,139,0.12);">📜</div><div class="si-text"><h3>Terms & Privacy</h3><p>Legal stuff</p></div></div>
+          <div class="si-arrow">›</div>
+        </div>
+        <div class="settings-item logout-item" onclick="handleLogout()">
+          <div class="si-left"><div class="si-icon" style="background:rgba(239,68,68,0.12);">🚪</div><div class="si-text"><h3>Log Out</h3><p>Sign out of your account</p></div></div>
+          <div class="si-arrow">›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ABOUT PAGE ==================== -->
+  <div id="page-about" class="page">
+    <div class="page-inner">
+      <div class="back-btn" onclick="navigate('profile')">← Back to Profile</div>
+      <div class="about-hero">
+        <h1 class="gradient-text">K-SWAP</h1>
+        <p class="about-tagline">Konnecting Kiitians</p>
+        <p style="color:var(--text-secondary); margin-top:12px; max-width:340px; margin-left:auto; margin-right:auto;">The peer-to-peer campus marketplace built by KIIT students, for KIIT students. Zero fees. Zero middlemen.</p>
+      </div>
+      <div class="about-section">
+        <h2>🎯 Our Mission</h2>
+        <div class="about-card">
+          <p>Every semester, thousands of KIIT students buy textbooks, lab coats, and supplies — only to struggle selling them later. K-SWAP eliminates the middleman.</p>
+          <p style="margin-top:12px;"><strong style="color:var(--text-primary);">No commission. No fees. Just students helping students.</strong></p>
+          <p style="margin-top:12px;">We believe in a sustainable campus economy where nothing goes to waste and every student can afford what they need.</p>
+        </div>
+      </div>
+      <div class="about-section">
+        <h2>📊 K-SWAP in Numbers</h2>
+        <div class="about-stats-grid">
+          <div class="about-stat"><div class="val">9+</div><div class="label">Categories</div></div>
+          <div class="about-stat"><div class="val">24/7</div><div class="label">Available</div></div>
+          <div class="about-stat"><div class="val">₹0</div><div class="label">Fees</div></div>
+        </div>
+      </div>
+      <div class="about-section">
+        <h2>💬 Contact Us</h2>
+        <div class="about-card" style="text-align:center;">
+          <p style="font-size:28px;">📧</p>
+          <p style="font-weight:600; font-size:16px; margin:8px 0 4px;">Get in Touch</p>
+          <p style="color:var(--text-muted); font-size:14px; margin-bottom:12px;">Questions, feedback, or partnership ideas?</p>
+          <a href="mailto:kswap.kiit@gmail.com" style="color:var(--accent); font-weight:600; font-size:16px;">kswap.kiit@gmail.com</a>
+          <p style="color:var(--text-muted); font-size:13px; margin-top:16px;">Want to join the K-SWAP team? We're looking for designers, developers, and campus ambassadors!</p>
+        </div>
+      </div>
+      <div class="about-section">
+        <h2>💡 Founder's Note</h2>
+        <div class="about-card quote-card">
+          <p style="font-style:italic; color:var(--text-secondary); line-height:1.7;">"I started K-SWAP because I saw a problem every Kiitian faces — wasting money on things others are giving away. This isn't just a marketplace, it's a movement to make campus life more affordable, more connected, and more sustainable."</p>
+          <p style="margin-top:16px; font-weight:600;">— A Kiitian, for all Kiitians 🧡</p>
+        </div>
+      </div>
+      <div class="about-footer-note">Made with ❤️ at KIIT University<br><small>© 2025 K-SWAP. All rights reserved.</small></div>
+    </div>
+  </div>
+
+  <!-- ==================== FAQ PAGE ==================== -->
+  <div id="page-faq-page" class="page">
+    <div class="page-inner">
+      <div class="back-btn" onclick="navigate('profile')">← Back to Profile</div>
+      <h1 class="page-heading" style="padding-top:8px;">FAQ & Help Center</h1>
+      <p class="page-subheading">Everything you need to know about K-SWAP</p>
+      <div class="faq-list" style="margin-top:20px;">
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>Is K-SWAP free to use?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>100% free. No listing fees, no commission, no hidden charges.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>How do I verify I'm a KIIT student?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Sign up with your KIIT roll number. Your email becomes rollnumber@kiit.ac.in. We send a verification email to confirm you have access to that KIIT email. Only real KIIT students can access @kiit.ac.in emails.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>What can I sell on K-SWAP?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Anything campus-related: textbooks, lab coats, calculators, cycles, room accessories, study notes, clothing, gaming gear, and more. No illegal or inappropriate items.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>How does bartering work?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Instead of selling for money, you can trade your item for something else. Select "Barter" when posting and describe what you want in exchange. Chat with interested people to finalize the trade.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>Where should I meet to exchange items?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Always meet in public campus locations like canteens, library lobbies, or campus gates. Each listing shows a suggested meetup spot. Never go to someone's room alone.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>How do I report a bad seller or scam?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Tap the 🚩 Report button in any chat, or email us at kswap.kiit@gmail.com with screenshots. We take every report seriously since all users are traceable KIIT students.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>Can I edit or delete my listing?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Go to your Profile → My Listings. You can manage all your active listings from there.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>How are ratings calculated?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>After each trade, both buyer and seller can rate each other (1-5 stars). Your profile shows the average of all ratings received. Higher ratings build trust!</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>Is my personal information safe?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>We only show your name and school on your profile. Your roll number, email, and password are never shared. Data is stored securely on encrypted servers via Supabase.</p></div></div>
+      </div>
+      <div class="about-card" style="text-align:center; margin-top:24px;">
+        <p style="font-size:18px;">🤔</p>
+        <p style="font-weight:600; margin:8px 0;">Still have questions?</p>
+        <p style="color:var(--text-muted); font-size:14px; margin-bottom:12px;">We're here to help!</p>
+        <a href="mailto:kswap.kiit@gmail.com" class="btn-primary" style="display:inline-flex; max-width:260px;">Email Us →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TERMS PAGE ==================== -->
+  <div id="page-terms" class="page">
+    <div class="page-inner">
+      <div class="back-btn" onclick="navigate('profile')">← Back to Profile</div>
+      <h1 class="page-heading" style="padding-top:8px;">Terms of Service</h1>
+      <p class="page-subheading">Last updated: June 2026 · Effective immediately upon registration</p>
+      <div class="legal-content">
+        <h3>1. Introduction</h3>
+        <p>Welcome to K-SWAP ("the Platform," "we," "us," or "our"). K-SWAP is a peer-to-peer campus marketplace application designed to facilitate the buying, selling, and bartering of goods and services among the student community of KIIT University (Kalinga Institute of Industrial Technology), Bhubaneswar, Odisha, India. These Terms of Service ("Terms") constitute a legally binding agreement between you ("User," "you," or "your") and K-SWAP. By accessing, registering for, or using the Platform in any manner, you acknowledge that you have read, understood, and agree to be bound by these Terms in their entirety.</p>
+
+        <h3>2. Definitions</h3>
+        <p>For the purposes of these Terms: (a) "Platform" refers to the K-SWAP web application, including all pages, features, and services accessible through it; (b) "User" refers to any individual who accesses or uses the Platform, whether registered or unregistered; (c) "Listing" refers to any item, product, or service posted on the Platform for sale, barter, or free distribution; (d) "Seller" refers to a User who creates a Listing; (e) "Buyer" refers to a User who expresses interest in acquiring a Listing; (f) "Transaction" refers to any agreement, exchange, or trade between Users facilitated through the Platform's communication features; (g) "Content" refers to any text, images, descriptions, reviews, ratings, messages, or other material submitted to the Platform by Users; (h) "Roll Number" refers to the unique student identification number issued by KIIT University to enrolled students.</p>
+
+        <h3>3. Acceptance of Terms</h3>
+        <p>By creating an account, browsing listings, posting content, or interacting with other Users, you expressly agree to comply with and be bound by these Terms, our Privacy Policy, and any additional guidelines or rules that may be posted on the Platform from time to time. If you do not agree to any provision of these Terms, you must immediately discontinue use of the Platform and delete your account. Your continued use of the Platform following any amendments to these Terms shall constitute your acceptance of such amendments.</p>
+
+        <h3>4. Eligibility Requirements</h3>
+        <p>The Platform is exclusively available to currently enrolled students of KIIT University, Bhubaneswar. To be eligible to use K-SWAP, you must: (a) be a currently enrolled, active student at KIIT University with a valid student status; (b) possess a valid, active KIIT roll number corresponding to your current enrollment; (c) be at least 18 years of age or the age of majority in your jurisdiction; (d) have the legal capacity to enter into a binding agreement. The following individuals are expressly prohibited from using the Platform: alumni (graduates of any batch), faculty members, administrative staff, visiting scholars, individuals not affiliated with KIIT University, and any person whose account has been previously terminated by K-SWAP. We reserve the right to verify eligibility at any time and to immediately terminate accounts that do not meet these requirements without prior notice or liability.</p>
+
+        <h3>5. Account Registration and Security</h3>
+        <p>To access the full features of the Platform, you must create an account by providing: your KIIT roll number, a valid personal email address (for OTP authentication), your full legal name, school/department, branch of study, and year of enrollment. You are solely responsible for: (a) ensuring the accuracy and completeness of all information provided during registration; (b) maintaining the confidentiality of your account credentials and OTP codes; (c) all activities that occur under your account, whether authorised by you or not; (d) notifying us immediately of any unauthorised access to or use of your account. You may not: create multiple accounts; use another person's roll number or identity; share your account with others; or transfer your account to another individual. Providing false, misleading, or fraudulent information during registration is a violation of these Terms and may result in immediate account termination and potential reporting to KIIT University administration.</p>
+
+        <h3>6. Listing Standards and Content Guidelines</h3>
+        <p>When creating a Listing, you agree to: (a) provide an accurate, honest, and complete description of the item or service; (b) accurately represent the condition of the item using the available condition categories (Like New, Good, Fair, Well Used); (c) set a fair and reasonable price, or clearly indicate if the Listing is for barter or free distribution; (d) upload only authentic photographs of the actual item being listed (stock photos or images of different items are prohibited); (e) specify a safe, public meeting location for the exchange; (f) promptly update or remove your Listing once the item has been sold, traded, or is no longer available. All Listings must comply with the content standards outlined in Section 14 (Prohibited Items and Activities) of these Terms.</p>
+
+        <h3>7. Communication Between Users</h3>
+        <p>The Platform provides an in-app messaging system to facilitate communication between Buyers and Sellers. By using this feature, you agree to: (a) communicate respectfully and professionally at all times; (b) not use the messaging system for spam, harassment, solicitation, or purposes unrelated to legitimate transactions; (c) not share personally identifiable information such as phone numbers, exact hostel room numbers, UPI PINs, bank account details, or passwords through the chat; (d) not send inappropriate, offensive, threatening, or sexually explicit content. K-SWAP reserves the right to monitor, review, and moderate messages for compliance with these Terms. Messages may be retained for a reasonable period for dispute resolution and safety purposes.</p>
+
+        <h3>8. Nature of the Platform — Important Acknowledgement</h3>
+        <p>K-SWAP operates exclusively as a technology platform that connects students who wish to buy, sell, or trade campus essentials. The Platform serves as an intermediary communication and listing service only. K-SWAP is not and shall not be construed as: a retailer, reseller, or distributor of any goods; a party to any transaction between Users; a payment processor or financial intermediary; an escrow or guarantor of any transaction; an arbiter or mediator of disputes; or a verification or background check service. The Platform merely provides the technological infrastructure for Users to discover listings, communicate with each other, and arrange transactions independently. The decision to engage in any transaction rests entirely with the individual Users involved.</p>
+
+        <h3>9. User Verification Limitations</h3>
+        <p>Users acknowledge and understand that K-SWAP's registration process involves basic roll number format validation only. This validation checks whether the entered roll number conforms to the standard KIIT roll number format (length, batch year range) and is intended solely to restrict the Platform to individuals who possess a roll number in the correct format. This process does not constitute, and should not be interpreted as, verification of: (a) the User's actual identity or whether the roll number belongs to the person registering; (b) the User's current enrollment status at KIIT University; (c) the User's background, character, intentions, or trustworthiness; (d) the User's criminal history or disciplinary record; (e) the authenticity of any information provided by the User, including but not limited to their name, school, branch, or year of study. Users are therefore strongly encouraged to exercise their own independent judgement, caution, and due diligence when interacting with other Users, evaluating listings, and deciding whether to proceed with any transaction. Meeting in well-populated, public campus locations with witnesses present is strongly advised for all exchanges.</p>
+
+        <h3>10. Transactions and User Responsibility</h3>
+        <p>All transactions on K-SWAP are conducted directly between Users without any involvement, facilitation, or oversight by the Platform. By engaging in any transaction, you acknowledge and agree that: (a) you are solely responsible for evaluating the quality, safety, legality, suitability, and value of any item before agreeing to purchase, trade, or accept it; (b) you are solely responsible for determining whether to trust the other party in any transaction; (c) you bear all risk associated with the transaction, including but not limited to the risk of receiving items that are damaged, defective, misrepresented, counterfeit, stolen, or otherwise not as described; (d) K-SWAP is not responsible for and does not guarantee the accuracy of any listing description, photograph, pricing, condition assessment, or other information provided by Sellers; (e) all negotiations, pricing agreements, and transaction terms are determined exclusively between the Buyer and Seller; (f) K-SWAP does not process, facilitate, or guarantee any payment and has no visibility into the financial aspects of any transaction.</p>
+
+        <h3>11. Assumption of Risk</h3>
+        <p>You expressly acknowledge that using the Platform and engaging in transactions with other Users involves inherent risks, including but not limited to: the risk of dealing with individuals whose identity has not been independently verified; the risk of purchasing items that may be stolen, damaged, or misrepresented; the risk of financial loss; and the risk associated with meeting strangers for in-person exchanges. By using the Platform, you voluntarily assume all such risks and agree that K-SWAP shall not be liable for any damages, losses, injuries, or negative outcomes arising from your use of the Platform or your interactions with other Users, whether such interactions occur on or off the Platform. You agree to exercise reasonable care, caution, and common sense in all your interactions and transactions.</p>
+
+        <h3>12. Limitation of Liability</h3>
+        <p>To the maximum extent permitted by applicable law, K-SWAP, its creators, developers, operators, affiliates, and contributors shall not be liable for: (a) any direct, indirect, incidental, special, consequential, or punitive damages arising from your use of or inability to use the Platform; (b) any errors, inaccuracies, or omissions in any content posted on the Platform; (c) any unauthorized access to or use of our servers and/or any personal information stored therein; (d) any loss, theft, damage, or harm resulting from transactions between Users; (e) any disputes between Users; (f) any conduct of any User, whether online or offline; (g) any technical failures, interruptions, or data loss. The Platform is provided on an "as is" and "as available" basis without any warranties of any kind, whether express, implied, or statutory, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement.</p>
+
+        <h3>13. Safety Guidelines and Best Practices</h3>
+        <p>While K-SWAP strives to foster a safe and trustworthy community, your personal safety is ultimately your own responsibility. We strongly recommend the following best practices for all Users: (a) always conduct exchanges in well-lit, publicly accessible campus locations such as canteens, library lobbies, or campus gates where other students are present; (b) avoid meeting in private locations such as hostel rooms, isolated parking areas, or off-campus locations; (c) consider bringing a friend or trusted person when meeting another User for an exchange; (d) inspect all items thoroughly before completing a transaction; do not pay for or accept items sight unseen; (e) never transfer money (via UPI, cash, or any other method) before physically receiving and inspecting the item; (f) never share sensitive personal or financial information including UPI PINs, bank passwords, OTP codes, Aadhaar numbers, or PAN details with anyone on this Platform; (g) be wary of deals that appear too good to be true — unusually low prices may indicate stolen, defective, or non-existent items; (h) keep a record of all conversations and agreements made through the Platform; (i) report any suspicious behaviour, fraudulent listings, or safety concerns immediately to kswap.kiit@gmail.com and, where appropriate, to KIIT University campus security; (j) trust your instincts — if something feels wrong or unsafe, do not proceed with the transaction.</p>
+
+        <h3>14. Prohibited Items and Activities</h3>
+        <p>The following items and activities are strictly prohibited on the Platform: (a) illegal substances, drugs, narcotics, or drug paraphernalia; (b) weapons, firearms, ammunition, explosives, or dangerous materials; (c) stolen, misappropriated, or unlawfully obtained property; (d) counterfeit, pirated, or fraudulently labelled goods; (e) prescription medication, controlled substances, or medical devices; (f) alcoholic beverages and tobacco products; (g) exam question papers, answer keys, completed assignments, thesis work, or any material intended to facilitate academic dishonesty; (h) pornographic, obscene, or sexually explicit material; (i) items that infringe upon intellectual property rights, patents, trademarks, or copyrights; (j) services that violate any law or regulation; (k) any item or activity that violates KIIT University's code of conduct, institutional policies, or disciplinary regulations; (l) financial instruments, securities, cryptocurrency, or gambling services; (m) personal data, account credentials, or access to third-party accounts; (n) any item or service that K-SWAP determines, at its sole discretion, to be inappropriate for the Platform.</p>
+
+        <h3>15. Reporting and Moderation</h3>
+        <p>K-SWAP relies on its community of Users to help maintain a safe and trustworthy marketplace. If you encounter a listing, message, or User that you believe violates these Terms or poses a safety concern, you are encouraged to report it using the in-app reporting feature or by emailing kswap.kiit@gmail.com. We will review all reports in a timely manner and may take action including but not limited to: removing reported content, issuing warnings, temporarily suspending accounts, permanently banning accounts, or reporting serious violations to KIIT University administration or law enforcement authorities. However, K-SWAP does not guarantee that it will take any specific action in response to a report, and the decision to act or not act upon any report is at our sole discretion.</p>
+
+        <h3>16. Account Suspension and Termination</h3>
+        <p>K-SWAP reserves the right, at its sole discretion and without prior notice, to: (a) suspend or temporarily restrict access to any User's account for any reason; (b) permanently terminate any User's account for violations of these Terms; (c) remove or disable access to any content that violates these Terms or that we determine to be harmful, fraudulent, or inappropriate; (d) report Users to KIIT University administration and/or law enforcement authorities for serious violations. Grounds for suspension or termination include but are not limited to: posting prohibited items; engaging in fraudulent activity; receiving multiple reports from other Users; providing false registration information; creating multiple accounts; attempting to circumvent Platform restrictions; harassing other Users; or any other conduct that K-SWAP determines to be detrimental to the Platform or its Users. Terminated accounts cannot be reinstated, and any pending Listings or messages associated with the terminated account may be permanently deleted.</p>
+
+        <h3>17. Intellectual Property</h3>
+        <p>The K-SWAP name, logo, design elements, user interface, source code, and all associated intellectual property are the exclusive property of the K-SWAP team and are protected by applicable intellectual property laws. Users retain ownership of the content they submit to the Platform (including listing descriptions, photographs, and reviews) but grant K-SWAP a non-exclusive, royalty-free, worldwide licence to use, display, reproduce, and distribute such content for the purpose of operating and promoting the Platform. Users may not: copy, modify, distribute, sell, or lease any part of the Platform; reverse engineer or attempt to extract the source code; use the K-SWAP brand for any purpose without prior written permission.</p>
+
+        <h3>18. Indemnification</h3>
+        <p>You agree to indemnify, defend, and hold harmless K-SWAP, its creators, developers, operators, contributors, and affiliates from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable legal fees) arising out of or in any way connected with: (a) your use of or inability to use the Platform; (b) your violation of these Terms; (c) your violation of any rights of any third party; (d) any content you post on the Platform; (e) any transaction you engage in with another User; (f) any dispute between you and another User.</p>
+
+        <h3>19. Modifications to the Platform and Terms</h3>
+        <p>K-SWAP reserves the right to: (a) modify, update, suspend, or discontinue any feature or aspect of the Platform at any time without prior notice; (b) amend these Terms at any time by posting the revised version on the Platform with an updated "Last updated" date. It is your responsibility to review these Terms periodically for changes. Your continued use of the Platform following the posting of revised Terms constitutes your acceptance of such changes. If you disagree with any amended Terms, your sole remedy is to discontinue use of the Platform and delete your account.</p>
+
+        <h3>20. Third-Party Services</h3>
+        <p>The Platform may contain links to or integrate with third-party services, including but not limited to Supabase (for authentication and database hosting), Google Fonts (for typography), and email service providers (for OTP delivery). K-SWAP is not responsible for the privacy practices, terms of service, or content of any third-party services. Your use of such services is governed by their respective terms and policies.</p>
+
+        <h3>21. Governing Law and Dispute Resolution</h3>
+        <p>These Terms shall be governed by and construed in accordance with the laws of India, without regard to its conflict of law principles. Any disputes, claims, or controversies arising out of or relating to these Terms or the use of the Platform shall be subject to the exclusive jurisdiction of the competent courts in Bhubaneswar, Odisha, India. Before initiating any legal proceedings, Users agree to first attempt to resolve disputes informally by contacting K-SWAP at kswap.kiit@gmail.com.</p>
+
+        <h3>22. Severability and Waiver</h3>
+        <p>If any provision of these Terms is found to be invalid, illegal, or unenforceable by a court of competent jurisdiction, the remaining provisions shall continue in full force and effect. The failure of K-SWAP to enforce any right or provision of these Terms shall not constitute a waiver of such right or provision.</p>
+
+        <h3>23. Entire Agreement</h3>
+        <p>These Terms, together with the Privacy Policy and any other legal notices or guidelines published by K-SWAP on the Platform, constitute the entire agreement between you and K-SWAP regarding your use of the Platform and supersede all prior agreements, understandings, and communications, whether oral or written.</p>
+
+        <h3>24. Privacy</h3>
+        <p>Your use of the Platform is also governed by our <a onclick="navigate('privacy')" style="color:var(--accent); cursor:pointer;">Privacy Policy</a>, which describes how we collect, use, store, and protect your personal information. By using the Platform, you consent to the practices described in the Privacy Policy.</p>
+
+        <h3>25. Contact Information</h3>
+        <p>For any questions, concerns, feedback, or to report violations of these Terms, please contact us at: <a href="mailto:kswap.kiit@gmail.com" style="color:var(--accent);">kswap.kiit@gmail.com</a></p>
+        <p style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted);">By creating an account on K-SWAP, you confirm that you have read these Terms of Service in their entirety and agree to be bound by them. If you have any questions about these Terms, please contact us before proceeding with registration.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PRIVACY PAGE ==================== -->
+  <div id="page-privacy" class="page">
+    <div class="page-inner">
+      <div class="back-btn" onclick="navigate('profile')">← Back to Profile</div>
+      <h1 class="page-heading" style="padding-top:8px;">Privacy Policy</h1>
+      <p class="page-subheading">Last updated: June 2026</p>
+      <div class="legal-content">
+        <h3>1. Information We Collect</h3>
+        <p>We collect: your KIIT roll number, full name, personal email address, school, branch, year of study, profile bio, and any items you list on the platform. We do <strong>not</strong> collect phone numbers, Aadhaar numbers, PAN numbers, financial details, or payment information of any kind.</p>
+        <h3>2. How We Use Your Data</h3>
+        <p>Your data is used exclusively to operate K-SWAP: displaying your public profile, showing your listings, enabling in-app chat with other students, and sending OTP emails for authentication. We do not use your data for advertising, profiling, or any purpose beyond the core functionality of this platform.</p>
+        <h3>3. Data Storage & Security</h3>
+        <p>All data is stored on Supabase (backed by PostgreSQL on AWS infrastructure) with encryption at rest and in transit (TLS 1.2+). Access to the database is restricted via Row Level Security policies. Only you can access your own account data through authenticated sessions.</p>
+        <h3>4. What Other Users Can See</h3>
+        <p>The following information is <strong>publicly visible</strong> to other K-SWAP users: your full name, school, branch, and your listings. Your <strong>personal email address</strong> and <strong>roll number</strong> are never displayed publicly to other users. Chat messages are visible only to the participants of that conversation.</p>
+        <h3>5. What We Share with Third Parties</h3>
+        <p>We <strong>never</strong> sell, rent, or share your personal data with any third party. The only external services that process your data are: (a) Supabase (database hosting and authentication), and (b) your email provider (for receiving OTP codes). No analytics, advertising, or tracking services have access to your data.</p>
+        <h3>6. Data Retention</h3>
+        <p>Your data is retained for as long as your account is active. Inactive accounts (no login for 12+ months) may be flagged for deletion. Listing data for sold/completed items may be retained in anonymised form for platform analytics.</p>
+        <h3>7. Your Rights</h3>
+        <p>You have the right to: (a) access all personal data we hold about you; (b) correct inaccurate information on your profile; (c) request complete deletion of your account and all associated data. To exercise any of these rights, email <a href="mailto:kswap.kiit@gmail.com" style="color:var(--accent);">kswap.kiit@gmail.com</a>. We will process requests within 7 business days.</p>
+        <h3>8. Safety & User Responsibility</h3>
+        <p>K-SWAP does not verify user identities beyond basic roll number format validation. You are solely responsible for assessing the trustworthiness of other users before engaging in any transaction. Never share sensitive personal information through the platform's chat. See our <a onclick="navigate('terms')" style="color:var(--accent); cursor:pointer;">Terms of Service</a> for full safety guidelines.</p>
+        <h3>9. Changes to This Policy</h3>
+        <p>We may update this Privacy Policy periodically. Continued use of K-SWAP after changes constitutes acceptance.</p>
+        <h3>10. Contact</h3>
+        <p>For privacy concerns, data requests, or questions: <a href="mailto:kswap.kiit@gmail.com" style="color:var(--accent);">kswap.kiit@gmail.com</a></p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==================== BOTTOM NAVIGATION ==================== -->
+<nav id="bottom-nav">
+  <div class="nav-item active" onclick="navigate('home')" data-page="home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Home</span>
+  </div>
+  <div class="nav-item" onclick="navigate('market')" data-page="market">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    <span>Market</span>
+  </div>
+  <div class="nav-item post-btn" onclick="navigate('post')" data-page="post">
+    <div class="post-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </div>
+  </div>
+  <div class="nav-item" onclick="navigate('chats')" data-page="chats">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span>Chat</span>
+    <div class="nav-badge" id="chat-badge" style="display:none;">0</div>
+  </div>
+  <div class="nav-item" onclick="navigate('profile')" data-page="profile">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Profile</span>
+  </div>
+</nav>
+
+<script src="app.js"></script>
+</body>
+</html>
