@@ -1,0 +1,27 @@
+{
+  "name": "K-SWAP — Campus Marketplace",
+  "short_name": "K-SWAP",
+  "description": "Buy, sell, barter campus essentials. Zero fees. Only for KIIT students.",
+  "start_url": "/kswap/",
+  "scope": "/kswap/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07070d",
+  "theme_color": "#8b5cf6",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192/8b5cf6/ffffff?text=K",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://placehold.co/512x512/8b5cf6/ffffff?text=K",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "education"],
+  "screenshots": []
+}
