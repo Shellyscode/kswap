@@ -20,7 +20,39 @@
       isLive = true;
     }
   } catch (e) {
-    console.warn('Supabase init failed:', e);
+    // Silent fail — do not expose error details
+  }
+
+  // ============ SECURITY UTILITIES ============
+  // XSS protection: escape all user-generated content before inserting into DOM
+  function sanitize(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;')
+      .trim()
+      .slice(0, 500); // Hard cap at 500 chars
+  }
+
+  // Rate limiter: prevent spam (max N actions per window)
+  function checkRateLimit(key, maxCount, windowMs) {
+    var now = Date.now();
+    var stored = [];
+    try { stored = JSON.parse(localStorage.getItem('rl_' + key) || '[]'); } catch(e) {}
+    stored = stored.filter(function(t) { return now - t < windowMs; });
+    if (stored.length >= maxCount) return false;
+    stored.push(now);
+    try { localStorage.setItem('rl_' + key, JSON.stringify(stored)); } catch(e) {}
+    return true;
+  }
+
+  // Safe logger: never expose internals in production
+  function secureLog(msg) {
+    // Intentionally empty in production — remove for debugging
   }
 
   // ============ STATE ============
@@ -463,9 +495,14 @@
     var bc = item.type === 'sale' ? 'badge-sale' : item.type === 'barter' ? 'badge-barter' : 'badge-free';
     var bt = item.type === 'sale' ? '💰 Sale' : item.type === 'barter' ? '🔄 Barter' : '🎁 Free';
     var priceClass = item.type === 'free' ? 'listing-price free' : item.type === 'barter' ? 'listing-price barter' : 'listing-price';
-    var priceText = item.type === 'free' ? 'FREE' : item.type === 'barter' ? 'Barter' : '₹' + item.price;
+    var priceText = item.type === 'free' ? 'FREE' : item.type === 'barter' ? 'Barter' : '₹' + sanitize(String(item.price || 0));
     var isSaved = state.savedIds.has(item.id);
     var heartClass = isSaved ? 'wishlist-btn saved' : 'wishlist-btn';
+    // Sanitize ALL user-generated fields
+    var safeTitle = sanitize(item.title);
+    var safeSeller = sanitize(item.seller);
+    var safeLocation = sanitize(item.location || 'Campus');
+    var safeTime = sanitize(item.time || '');
 
     return '<div class="listing-card' + (isH ? ' h-card' : '') + '" onclick="openDetail(' + item.id + ')">' +
       '<div class="listing-img" style="background:' + g + ';">' +
@@ -474,10 +511,10 @@
         '<button class="' + heartClass + '" onclick="event.stopPropagation();toggleSave(' + item.id + ')">' + (isSaved ? '♥' : '♡') + '</button>' +
       '</div>' +
       '<div class="listing-body">' +
-        '<h3>' + item.title + '</h3>' +
+        '<h3>' + safeTitle + '</h3>' +
         '<span class="' + priceClass + '">' + priceText + '</span>' +
-        '<div class="listing-meta"><span>👤 ' + item.seller + '</span><span>📍 ' + item.location + '</span></div>' +
-        '<div class="listing-meta"><span>🕐 ' + item.time + '</span></div>' +
+        '<div class="listing-meta"><span>👤 ' + safeSeller + '</span><span>📍 ' + safeLocation + '</span></div>' +
+        '<div class="listing-meta"><span>🕐 ' + safeTime + '</span></div>' +
       '</div></div>';
   }
 
@@ -736,6 +773,15 @@
     var barterWants = type === 'barter' ? document.getElementById('post-barter').value.trim() : '';
 
     if (!title || !category) { showToast('Please fill item name and category', 'error'); return; }
+    // Input length validation
+    if (title.length > 120) { showToast('Title too long (max 120 characters)', 'error'); return; }
+    if (description.length > 1000) { showToast('Description too long (max 1000 characters)', 'error'); return; }
+    if (location.length > 80) { showToast('Location too long (max 80 characters)', 'error'); return; }
+    if (price < 0 || price > 99999) { showToast('Enter a valid price (₹0 – ₹99,999)', 'error'); return; }
+    // Rate limit: max 5 listings per hour
+    if (!checkRateLimit('post', 5, 3600000)) {
+      showToast('You can post up to 5 listings per hour. Please wait.', 'error'); return;
+    }
 
     var imageUrl = '';
 
@@ -750,7 +796,7 @@
           var urlRes = sb.storage.from('listings').getPublicUrl(path);
           imageUrl = urlRes.data.publicUrl;
         }
-      } catch (err) { console.warn('Image upload error:', err); }
+      } catch (err) { /* silent fail — do not expose storage errors */ }
     }
 
     var newListing = {
@@ -889,8 +935,11 @@
   function renderChatMessages() {
     if (!state.currentChat) return;
     var c = document.getElementById('cd-messages');
+    // sanitize() all message content and time to prevent XSS
     c.innerHTML = state.currentChat.messages.map(function (m) {
-      return '<div class="msg ' + (m.sent ? 'sent' : 'received') + '">' + m.text + '<div class="msg-time">' + m.time + '</div></div>';
+      return '<div class="msg ' + (m.sent ? 'sent' : 'received') + '">' +
+        sanitize(m.text) +
+        '<div class="msg-time">' + sanitize(m.time) + '</div></div>';
     }).join('');
     setTimeout(function () { c.scrollTop = c.scrollHeight; }, 50);
   }
@@ -899,6 +948,12 @@
     var input = document.getElementById('chat-input');
     var text = input.value.trim();
     if (!text || !state.currentChat) return;
+    // Validate message length
+    if (text.length > 1000) { showToast('Message too long (max 1000 characters)', 'error'); return; }
+    // Rate limit: max 30 messages per minute
+    if (!checkRateLimit('msg', 30, 60000)) {
+      showToast('Sending too fast — please slow down', 'error'); return;
+    }
     var now = new Date();
     var time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
     state.currentChat.messages.push({ text: text, sent: true, time: time });
@@ -915,7 +970,7 @@
           sender_name: state.profile ? state.profile.full_name : 'Student',
           content: text,
         });
-      } catch (err) { console.warn('Send message error:', err); }
+      } catch (err) { /* silent fail */ }
     }
 
     // Simulate reply only in demo mode
@@ -1726,10 +1781,11 @@
   window.loadRealListings = loadRealListings;
 
   // ============ ADMIN PANEL ============
-  var ADMIN_EMAIL = 'shelly25singh12405@gmail.com';
+  // Admin access is determined by the is_admin flag on the Supabase profile
+  // Email is NOT hardcoded in client code for security
 
   function checkAdminAccess() {
-    var isAdmin = state.user && state.user.email === ADMIN_EMAIL;
+    var isAdmin = state.profile && state.profile.is_admin === true;
     var adminItem = document.getElementById('admin-menu-item');
     if (adminItem) adminItem.style.display = isAdmin ? 'flex' : 'none';
     return isAdmin;
