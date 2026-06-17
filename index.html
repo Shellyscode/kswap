@@ -5,7 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>K-SWAP | Konnecting Kiitians — Campus Marketplace</title>
   <meta name="description" content="K-SWAP is the peer-to-peer campus marketplace for KIIT University. Buy, sell, barter textbooks, lab coats, cycles, and more. Zero fees. Only verified KIIT students.">
-  <meta name="theme-color" content="#07070d">
+  <meta name="theme-color" content="#8b5cf6">
+  <link rel="manifest" href="/kswap/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="K-SWAP">
+  <meta property="og:title" content="K-SWAP — Campus Marketplace for Kiitians">
+  <meta property="og:description" content="Buy, sell, barter and trade campus essentials. Zero fees. Only for KIIT students.">
+  <meta property="og:url" content="https://shellyscode.github.io/kswap/">
+  <meta property="og:type" content="website">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -726,11 +734,16 @@
   <div id="page-profile" class="page" style="padding-top:0;">
     <div class="profile-cover"></div>
     <div class="profile-info">
-      <div class="profile-avatar" id="profile-initials">K</div>
+      <!-- Avatar with photo upload -->
+      <div class="profile-avatar" id="profile-initials" onclick="document.getElementById('avatar-upload').click()" style="cursor:pointer;position:relative;">
+        K
+        <div class="avatar-upload-hint">📷</div>
+      </div>
+      <input type="file" id="avatar-upload" accept="image/*" style="display:none;" onchange="handleAvatarUpload(this)">
       <div class="profile-name">
         <h1>
           <span id="profile-fullname">KIIT Student</span>
-          <span class="verified-badge">🎓 KIIT Student</span>
+          <span class="verified-badge" id="trust-badge">🎓 KIIT Student</span>
         </h1>
         <p id="profile-details">Roll No • School • Branch • Year</p>
       </div>
@@ -749,6 +762,7 @@
       <button class="profile-tab active" onclick="switchProfileTab('listings', this)">📦 My Listings</button>
       <button class="profile-tab" onclick="switchProfileTab('saved', this)">♥ Saved</button>
       <button class="profile-tab" onclick="switchProfileTab('reviews', this)">⭐ Reviews</button>
+      <button class="profile-tab" onclick="switchProfileTab('trades', this)">📋 Trades</button>
     </div>
     <div class="profile-tab-content" id="tab-listings">
       <div id="my-listings-grid" class="listing-grid" style="padding:0 20px;"></div>
@@ -773,6 +787,16 @@
         <div class="empty-icon">⭐</div>
         <h3>No reviews yet</h3>
         <p>Reviews will appear after you complete trades</p>
+      </div>
+    </div>
+
+    <!-- Trades tab -->
+    <div class="profile-tab-content" id="tab-trades" style="display:none;">
+      <div id="trades-list" style="padding:0 20px;"></div>
+      <div id="trades-empty" class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>No trades yet</h3>
+        <p>Completed trades will appear here</p>
       </div>
     </div>
 
@@ -811,6 +835,16 @@
         <div class="settings-item logout-item" onclick="handleLogout()">
           <div class="si-left"><div class="si-icon" style="background:rgba(239,68,68,0.12);">🚪</div><div class="si-text"><h3>Log Out</h3><p>Sign out of your account</p></div></div>
           <div class="si-arrow">›</div>
+        </div>
+      </div>
+    </div>
+    <!-- Danger Zone -->
+    <div class="profile-section" style="margin-top:8px;">
+      <h2 style="padding:0 20px; color:var(--danger);">⚠️ Danger Zone</h2>
+      <div style="padding:0 20px 20px;">
+        <div style="background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius); padding:16px;">
+          <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">Permanently delete your account and all associated data. This action cannot be undone.</p>
+          <button onclick="openDeleteAccount()" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--danger);padding:10px 20px;border-radius:var(--radius-full);font-size:14px;font-weight:600;cursor:pointer;width:100%;transition:all 0.2s;">🗑️ Delete My Account</button>
         </div>
       </div>
     </div>
@@ -1093,6 +1127,47 @@
     <div class="modal-actions" style="margin-top:24px;">
       <button class="btn-primary" onclick="applyFilters()">Apply Filters</button>
       <button class="btn-secondary" onclick="resetFilters()">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== REPORT MODAL ==================== -->
+<div class="modal-overlay" id="report-modal" onclick="closeReportModal(event)">
+  <div class="modal-sheet">
+    <span class="modal-handle"></span>
+    <div class="modal-title">🚩 Report User</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Help keep K-SWAP safe. Reports are reviewed confidentially.</p>
+    <div class="filter-section-title">Reason</div>
+    <div class="filter-chips" style="margin-bottom:16px;">
+      <button class="filter-chip selected" data-reason="Scam" onclick="selectReportReason(this)">Scam / Fraud</button>
+      <button class="filter-chip" data-reason="Fake item" onclick="selectReportReason(this)">Fake / Misleading Item</button>
+      <button class="filter-chip" data-reason="Harassment" onclick="selectReportReason(this)">Harassment</button>
+      <button class="filter-chip" data-reason="Spam" onclick="selectReportReason(this)">Spam</button>
+      <button class="filter-chip" data-reason="Other" onclick="selectReportReason(this)">Other</button>
+    </div>
+    <div class="input-wrap" style="margin-bottom:16px;">
+      <textarea id="report-note" placeholder="Add any details... (optional)" rows="3" style="resize:none;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="submitReport()">Submit Report</button>
+      <button class="btn-secondary" onclick="closeReportModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DELETE ACCOUNT MODAL ==================== -->
+<div class="modal-overlay" id="delete-account-modal" onclick="closeDeleteAccount(event)">
+  <div class="modal-sheet">
+    <span class="modal-handle"></span>
+    <div class="modal-title" style="color:var(--danger)">🗑️ Delete Account</div>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;line-height:1.6;">This will permanently delete your account, all listings, and all messages. <strong>This cannot be undone.</strong></p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Type <strong>DELETE</strong> below to confirm:</p>
+    <div class="input-wrap" style="margin-bottom:16px;">
+      <input type="text" id="delete-confirm-input" placeholder="Type DELETE here" style="border-color:rgba(239,68,68,0.3);">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" style="background:var(--danger);" onclick="confirmDeleteAccount()">Delete Forever</button>
+      <button class="btn-secondary" onclick="closeDeleteAccount()">Cancel</button>
     </div>
   </div>
 </div>
