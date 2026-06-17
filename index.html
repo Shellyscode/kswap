@@ -66,11 +66,11 @@
           <button class="btn-outline-lg" onclick="navigate('auth')">Browse Marketplace</button>
         </div>
         <div class="hero-stats">
-          <div class="hero-stat"><strong>500+</strong><span>Students</span></div>
+          <div class="hero-stat"><strong>100%</strong><span>Free Always</span></div>
           <div class="hero-stat-divider"></div>
-          <div class="hero-stat"><strong>1,200+</strong><span>Listings</span></div>
+          <div class="hero-stat"><strong>P2P</strong><span>Peer to Peer</span></div>
           <div class="hero-stat-divider"></div>
-          <div class="hero-stat"><strong>₹0</strong><span>Fees Ever</span></div>
+          <div class="hero-stat"><strong>KIIT</strong><span>Exclusive</span></div>
         </div>
       </div>
     </section>
@@ -125,7 +125,7 @@
             <div class="step-num">1</div>
             <div class="step-content">
               <h3>Sign Up with Roll Number</h3>
-              <p>Enter your KIIT roll number. We verify you're a real student through your @kiit.ac.in email.</p>
+              <p>Enter your KIIT roll number and personal email. We send an OTP to your email — open to currently enrolled KIIT students only.</p>
             </div>
           </div>
           <div class="step-card">
@@ -200,7 +200,7 @@
           </div>
           <div class="faq-item" onclick="toggleFaq(this)">
             <div class="faq-q"><h3>How do I know sellers are real KIIT students?</h3><span class="faq-toggle">+</span></div>
-            <div class="faq-a"><p>Every user signs up with their KIIT roll number and @kiit.ac.in email. We verify each account, so only authentic KIIT students can use K-SWAP. Look for the ✓ Verified badge on profiles.</p></div>
+            <div class="faq-a"><p>Every user signs up with a valid KIIT roll number. We perform roll number format validation at signup and restrict access to currently enrolled students only — alumni accounts are not permitted. However, please note that K-SWAP does not independently verify enrollment status with KIIT University — exercise your own judgement when transacting. Look for the ✓ badge on profiles.</p></div>
           </div>
           <div class="faq-item" onclick="toggleFaq(this)">
             <div class="faq-q"><h3>What is bartering and how does it work?</h3><span class="faq-toggle">+</span></div>
@@ -484,18 +484,50 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
       </div>
-      <div class="pills" style="margin:16px 0;">
-        <span class="pill active" data-cat="all" onclick="marketFilter('all', this)">All</span>
-        <span class="pill" data-cat="books" onclick="marketFilter('books', this)">📚 Books</span>
-        <span class="pill" data-cat="labcoats" onclick="marketFilter('labcoats', this)">🥼 Lab Coats</span>
-        <span class="pill" data-cat="tech" onclick="marketFilter('tech', this)">💻 Tech</span>
-        <span class="pill" data-cat="cycles" onclick="marketFilter('cycles', this)">🚲 Cycles</span>
-        <span class="pill" data-cat="room" onclick="marketFilter('room', this)">🏠 Room</span>
-        <span class="pill" data-cat="notes" onclick="marketFilter('notes', this)">📝 Notes</span>
-        <span class="pill" data-cat="clothing" onclick="marketFilter('clothing', this)">👕 Clothing</span>
-        <span class="pill" data-cat="gaming" onclick="marketFilter('gaming', this)">🎮 Gaming</span>
+      <!-- Filter + Sort bar -->
+      <div class="filter-bar">
+        <button class="filter-btn" id="filter-btn" onclick="openFilterSheet()">
+          🎚️ Filter <span id="filter-count-badge" style="display:none;" class="filter-count-badge">0</span>
+        </button>
+        <select class="sort-select" id="sort-select" onchange="applySort(this.value)">
+          <option value="newest">🕐 Newest First</option>
+          <option value="price-asc">💰 Price: Low → High</option>
+          <option value="price-desc">💰 Price: High → Low</option>
+          <option value="views">👁️ Most Viewed</option>
+        </select>
       </div>
-      <div class="listing-grid" id="market-grid"></div>
+      <!-- Market tabs: Listings | Looking For -->
+      <div class="wishlist-tab-bar">
+        <div class="wishlist-tab active" id="tab-listings-btn" onclick="switchMarketTab('listings')">🛒 Listings</div>
+        <div class="wishlist-tab" id="tab-lookingfor-btn" onclick="switchMarketTab('lookingfor')">🔖 Looking For</div>
+      </div>
+      <!-- Listings grid -->
+      <div id="market-listings-panel">
+        <div class="pills" style="margin:12px 0;">
+          <span class="pill active" data-cat="all" onclick="marketFilter('all', this)">All</span>
+          <span class="pill" data-cat="books" onclick="marketFilter('books', this)">📚 Books</span>
+          <span class="pill" data-cat="labcoats" onclick="marketFilter('labcoats', this)">🥼 Lab Coats</span>
+          <span class="pill" data-cat="tech" onclick="marketFilter('tech', this)">💻 Tech</span>
+          <span class="pill" data-cat="cycles" onclick="marketFilter('cycles', this)">🚲 Cycles</span>
+          <span class="pill" data-cat="room" onclick="marketFilter('room', this)">🏠 Room</span>
+          <span class="pill" data-cat="notes" onclick="marketFilter('notes', this)">📝 Notes</span>
+          <span class="pill" data-cat="clothing" onclick="marketFilter('clothing', this)">👕 Clothing</span>
+          <span class="pill" data-cat="gaming" onclick="marketFilter('gaming', this)">🎮 Gaming</span>
+        </div>
+        <div class="listing-grid" id="market-grid"></div>
+      </div>
+      <!-- Looking For panel -->
+      <div id="market-lookingfor-panel" style="display:none;">
+        <div class="wishlist-post-form">
+          <h3>🔖 Post a Request</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Tell the community what you're looking for</p>
+          <div class="input-wrap" style="margin-bottom:12px;"><input type="text" id="wl-title" placeholder="What are you looking for? e.g. CLRS Algorithms Book"></div>
+          <div class="input-wrap" style="margin-bottom:12px;"><input type="number" id="wl-budget" placeholder="Max budget (₹0 for free / barter)" min="0"></div>
+          <div class="input-wrap" style="margin-bottom:12px;"><textarea id="wl-desc" placeholder="Any specific requirements? Edition, condition, etc." rows="3" style="resize:none;"></textarea></div>
+          <button class="btn-primary" style="width:100%;" onclick="postWishlist()">Post Request →</button>
+        </div>
+        <div id="wishlist-grid"></div>
+      </div>
     </div>
   </div>
 
@@ -698,10 +730,11 @@
       <div class="profile-name">
         <h1>
           <span id="profile-fullname">KIIT Student</span>
-          <span class="verified-badge">✓ Verified</span>
+          <span class="verified-badge">🎓 KIIT Student</span>
         </h1>
         <p id="profile-details">Roll No • School • Branch • Year</p>
       </div>
+      <button class="edit-profile-btn" onclick="openEditProfile()">✏️ Edit Profile</button>
       <div class="profile-bio" id="profile-bio">Ready to trade on K-SWAP! 🚀</div>
       <div class="profile-stats">
         <div class="stat-card"><div class="stat-val" id="stat-listed">0</div><div class="stat-label">Listed</div></div>
@@ -747,12 +780,20 @@
     <div class="profile-section">
       <h2 style="padding:0 20px;">⚙️ Settings</h2>
       <div style="padding:0 20px;">
+        <!-- Dark / Light Mode Toggle -->
+        <div class="settings-item" style="cursor:default;">
+          <div class="si-left"><div class="si-icon" style="background:rgba(245,158,11,0.12);">🌙</div><div class="si-text"><h3>Dark Mode</h3><p>Switch between dark and light theme</p></div></div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="theme-toggle" onchange="toggleTheme(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
         <div class="settings-item" onclick="navigate('about')">
-          <div class="si-left"><div class="si-icon" style="background:rgba(139,92,246,0.12);">ℹ️</div><div class="si-text"><h3>About K-SWAP</h3><p>Mission, team & contact</p></div></div>
+          <div class="si-left"><div class="si-icon" style="background:rgba(139,92,246,0.12);">ℹ️</div><div class="si-text"><h3>About K-SWAP</h3><p>Mission, team &amp; contact</p></div></div>
           <div class="si-arrow">›</div>
         </div>
         <div class="settings-item" onclick="navigate('faq-page')">
-          <div class="si-left"><div class="si-icon" style="background:rgba(6,182,212,0.12);">❓</div><div class="si-text"><h3>FAQ & Help</h3><p>Common questions answered</p></div></div>
+          <div class="si-left"><div class="si-icon" style="background:rgba(6,182,212,0.12);">❓</div><div class="si-text"><h3>FAQ &amp; Help</h3><p>Common questions answered</p></div></div>
           <div class="si-arrow">›</div>
         </div>
         <div class="settings-item" onclick="window.open('mailto:kswap.kiit@gmail.com')">
@@ -764,7 +805,7 @@
           <div class="si-arrow">›</div>
         </div>
         <div class="settings-item" onclick="navigate('terms')">
-          <div class="si-left"><div class="si-icon" style="background:rgba(100,116,139,0.12);">📜</div><div class="si-text"><h3>Terms & Privacy</h3><p>Legal stuff</p></div></div>
+          <div class="si-left"><div class="si-icon" style="background:rgba(100,116,139,0.12);">📜</div><div class="si-text"><h3>Terms &amp; Privacy</h3><p>Legal stuff</p></div></div>
           <div class="si-arrow">›</div>
         </div>
         <div class="settings-item logout-item" onclick="handleLogout()">
@@ -793,11 +834,11 @@
         </div>
       </div>
       <div class="about-section">
-        <h2>📊 K-SWAP in Numbers</h2>
+        <h2>📊 What K-SWAP Offers</h2>
         <div class="about-stats-grid">
           <div class="about-stat"><div class="val">9+</div><div class="label">Categories</div></div>
           <div class="about-stat"><div class="val">24/7</div><div class="label">Available</div></div>
-          <div class="about-stat"><div class="val">₹0</div><div class="label">Fees</div></div>
+          <div class="about-stat"><div class="val">₹0</div><div class="label">Fees Ever</div></div>
         </div>
       </div>
       <div class="about-section">
@@ -817,7 +858,13 @@
           <p style="margin-top:16px; font-weight:600;">— A Kiitian, for all Kiitians 🧡</p>
         </div>
       </div>
-      <div class="about-footer-note">Made with ❤️ at KIIT University<br><small>© 2025 K-SWAP. All rights reserved.</small></div>
+      <div class="about-section" style="margin-top:0;">
+        <div class="about-card" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.15);">
+          <p style="font-size:13px;font-weight:600;color:var(--danger);margin-bottom:6px;">⚠️ Platform Disclaimer</p>
+          <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">K-SWAP is a peer-to-peer platform. We do not verify the identity or credentials of users beyond basic roll number format validation. All transactions are conducted at the discretion and risk of the parties involved. Please exercise caution, meet in public campus locations, and never transfer money before inspecting items in person.</p>
+        </div>
+      </div>
+      <div class="about-footer-note">Made with ❤️ at KIIT University<br><small>© 2026 K-SWAP. All rights reserved.</small></div>
     </div>
   </div>
 
@@ -829,11 +876,11 @@
       <p class="page-subheading">Everything you need to know about K-SWAP</p>
       <div class="faq-list" style="margin-top:20px;">
         <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>Is K-SWAP free to use?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>100% free. No listing fees, no commission, no hidden charges.</p></div></div>
-        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>How do I verify I'm a KIIT student?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Sign up with your KIIT roll number. Your email becomes rollnumber@kiit.ac.in. We send a verification email to confirm you have access to that KIIT email. Only real KIIT students can access @kiit.ac.in emails.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>How does signup work?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Enter your KIIT roll number (currently enrolled students only — alumni accounts are not permitted) and your personal email (Gmail, etc.). We send a 6-digit OTP to your personal email to verify access. Note: we perform roll number format validation only and do not independently verify your enrollment with KIIT University.</p></div></div>
         <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>What can I sell on K-SWAP?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Anything campus-related: textbooks, lab coats, calculators, cycles, room accessories, study notes, clothing, gaming gear, and more. No illegal or inappropriate items.</p></div></div>
         <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>How does bartering work?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Instead of selling for money, you can trade your item for something else. Select "Barter" when posting and describe what you want in exchange. Chat with interested people to finalize the trade.</p></div></div>
         <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>Where should I meet to exchange items?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Always meet in public campus locations like canteens, library lobbies, or campus gates. Each listing shows a suggested meetup spot. Never go to someone's room alone.</p></div></div>
-        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>How do I report a bad seller or scam?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Tap the 🚩 Report button in any chat, or email us at kswap.kiit@gmail.com with screenshots. We take every report seriously since all users are traceable KIIT students.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>How do I report a bad seller or scam?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Tap the 🚩 Report button in any chat, or email us at kswap.kiit@gmail.com with screenshots. We review every report and take appropriate action. Always meet in public and inspect items before paying — K-SWAP does not mediate disputes or guarantee transactions.</p></div></div>
         <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>Can I edit or delete my listing?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>Go to your Profile → My Listings. You can manage all your active listings from there.</p></div></div>
         <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>How are ratings calculated?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>After each trade, both buyer and seller can rate each other (1-5 stars). Your profile shows the average of all ratings received. Higher ratings build trust!</p></div></div>
         <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q"><h3>Is my personal information safe?</h3><span class="faq-toggle">+</span></div><div class="faq-a"><p>We only show your name and school on your profile. Your roll number, email, and password are never shared. Data is stored securely on encrypted servers via Supabase.</p></div></div>
@@ -850,7 +897,7 @@
   <!-- ==================== TERMS PAGE ==================== -->
   <div id="page-terms" class="page">
     <div class="page-inner">
-      <div class="back-btn" onclick="navigate('profile')">← Back to Profile</div>
+      <div class="back-btn" onclick="goBack()">← Back</div>
       <h1 class="page-heading" style="padding-top:8px;">Terms of Service</h1>
       <p class="page-subheading">Last updated: June 2026 · Effective immediately upon registration</p>
       <div class="legal-content">
@@ -936,7 +983,7 @@
   <!-- ==================== PRIVACY PAGE ==================== -->
   <div id="page-privacy" class="page">
     <div class="page-inner">
-      <div class="back-btn" onclick="navigate('profile')">← Back to Profile</div>
+      <div class="back-btn" onclick="goBack()">← Back</div>
       <h1 class="page-heading" style="padding-top:8px;">Privacy Policy</h1>
       <p class="page-subheading">Last updated: June 2026</p>
       <div class="legal-content">
@@ -966,6 +1013,90 @@
 
 </div>
 
+<!-- ==================== EDIT PROFILE MODAL ==================== -->
+<div class="modal-overlay" id="edit-profile-modal" onclick="closeEditProfile(event)">
+  <div class="modal-sheet">
+    <span class="modal-handle"></span>
+    <div class="modal-title">✏️ Edit Profile</div>
+    <div class="input-wrap" style="margin-bottom:12px;">
+      <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">Full Name</label>
+      <input type="text" id="edit-name" placeholder="Your full name">
+    </div>
+    <div class="input-wrap" style="margin-bottom:12px;">
+      <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">Bio</label>
+      <textarea id="edit-bio" placeholder="Tell the community about yourself..." rows="3" style="resize:none;"></textarea>
+    </div>
+    <div class="input-wrap" style="margin-bottom:12px;">
+      <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">School / Campus</label>
+      <select id="edit-school">
+        <option value="">Select School</option>
+        <option value="KIIT School of Engineering">School of Engineering</option>
+        <option value="KIIT School of Computer Application">School of Computer Application</option>
+        <option value="KIIT School of Management">School of Management</option>
+        <option value="KIIT School of Law">School of Law</option>
+        <option value="KIIT School of Architecture">School of Architecture</option>
+        <option value="KIIT School of Biotechnology">School of Biotechnology</option>
+        <option value="KIIT School of Medical Sciences">School of Medical Sciences</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="input-wrap" style="margin-bottom:12px;">
+      <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">Branch</label>
+      <input type="text" id="edit-branch" placeholder="e.g. Computer Science, Mechanical...">
+    </div>
+    <div class="input-wrap" style="margin-bottom:12px;">
+      <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">Year</label>
+      <select id="edit-year">
+        <option value="">Select Year</option>
+        <option value="1st Year">1st Year</option>
+        <option value="2nd Year">2nd Year</option>
+        <option value="3rd Year">3rd Year</option>
+        <option value="4th Year">4th Year</option>
+        <option value="5th Year">5th Year</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveEditProfile()">Save Changes</button>
+      <button class="btn-secondary" onclick="closeEditProfile()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FILTER SHEET MODAL ==================== -->
+<div class="modal-overlay" id="filter-modal" onclick="closeFilterSheet(event)">
+  <div class="modal-sheet">
+    <span class="modal-handle"></span>
+    <div class="modal-title">🎚️ Filter Listings</div>
+    <div class="filter-section-title">Type</div>
+    <div class="filter-chips">
+      <button class="filter-chip selected" data-filter="type" data-val="all" onclick="toggleFilterChip(this,'type')">Any</button>
+      <button class="filter-chip" data-filter="type" data-val="sale" onclick="toggleFilterChip(this,'type')">💰 For Sale</button>
+      <button class="filter-chip" data-filter="type" data-val="barter" onclick="toggleFilterChip(this,'type')">🔄 Barter</button>
+      <button class="filter-chip" data-filter="type" data-val="free" onclick="toggleFilterChip(this,'type')">🎁 Free</button>
+    </div>
+    <div class="filter-section-title">Condition</div>
+    <div class="filter-chips">
+      <button class="filter-chip selected" data-filter="condition" data-val="all" onclick="toggleFilterChip(this,'condition')">Any</button>
+      <button class="filter-chip" data-filter="condition" data-val="Like New" onclick="toggleFilterChip(this,'condition')">✨ Like New</button>
+      <button class="filter-chip" data-filter="condition" data-val="Good" onclick="toggleFilterChip(this,'condition')">👍 Good</button>
+      <button class="filter-chip" data-filter="condition" data-val="Fair" onclick="toggleFilterChip(this,'condition')">🆗 Fair</button>
+      <button class="filter-chip" data-filter="condition" data-val="Well Used" onclick="toggleFilterChip(this,'condition')">📦 Well Used</button>
+    </div>
+    <div class="filter-section-title">Price Range</div>
+    <div class="filter-chips">
+      <button class="filter-chip selected" data-filter="price" data-val="all" onclick="toggleFilterChip(this,'price')">Any</button>
+      <button class="filter-chip" data-filter="price" data-val="free" onclick="toggleFilterChip(this,'price')">Free</button>
+      <button class="filter-chip" data-filter="price" data-val="0-500" onclick="toggleFilterChip(this,'price')">Under ₹500</button>
+      <button class="filter-chip" data-filter="price" data-val="500-2000" onclick="toggleFilterChip(this,'price')">₹500–₹2000</button>
+      <button class="filter-chip" data-filter="price" data-val="2000+" onclick="toggleFilterChip(this,'price')">₹2000+</button>
+    </div>
+    <div class="modal-actions" style="margin-top:24px;">
+      <button class="btn-primary" onclick="applyFilters()">Apply Filters</button>
+      <button class="btn-secondary" onclick="resetFilters()">Reset</button>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== BOTTOM NAVIGATION ==================== -->
 <nav id="bottom-nav">
   <div class="nav-item active" onclick="navigate('home')" data-page="home">
@@ -993,5 +1124,16 @@
 </nav>
 
 <script src="app.js"></script>
+<script>
+  // Register Service Worker for push notifications
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js').catch(function(e) {
+        console.log('SW registration failed (ok in dev):', e);
+      });
+    });
+  }
+</script>
 </body>
 </html>
+
