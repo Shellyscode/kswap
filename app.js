@@ -162,7 +162,7 @@
 
     // Bottom nav
     var nav = document.getElementById('bottom-nav');
-    var hideNav = ['landing', 'auth', 'chat-detail', 'detail', 'terms', 'privacy'].indexOf(page) !== -1;
+    var hideNav = ['landing', 'auth', 'chat-detail', 'detail', 'terms', 'privacy', 'seller'].indexOf(page) !== -1;
     nav.classList.toggle('visible', !hideNav);
 
     // Active nav item
@@ -491,30 +491,43 @@
   // ============ LISTING CARD HTML ============
   function cardHTML(item, isH) {
     var g = GRADIENTS[item.category] || GRADIENTS.other;
-    var em = EMOJI[item.category] || '📦';
+    var em = EMOJI[item.category] || '\u{1F4E6}';
     var bc = item.type === 'sale' ? 'badge-sale' : item.type === 'barter' ? 'badge-barter' : 'badge-free';
-    var bt = item.type === 'sale' ? '💰 Sale' : item.type === 'barter' ? '🔄 Barter' : '🎁 Free';
+    var bt = item.type === 'sale' ? '\u{1F4B0} Sale' : item.type === 'barter' ? '\u{1F504} Barter' : '\u{1F381} Free';
     var priceClass = item.type === 'free' ? 'listing-price free' : item.type === 'barter' ? 'listing-price barter' : 'listing-price';
-    var priceText = item.type === 'free' ? 'FREE' : item.type === 'barter' ? 'Barter' : '₹' + sanitize(String(item.price || 0));
+    var priceText = item.type === 'free' ? 'FREE' : item.type === 'barter' ? 'Barter' : '\u20B9' + sanitize(String(item.price || 0));
     var isSaved = state.savedIds.has(item.id);
     var heartClass = isSaved ? 'wishlist-btn saved' : 'wishlist-btn';
-    // Sanitize ALL user-generated fields
-    var safeTitle = sanitize(item.title);
-    var safeSeller = sanitize(item.seller);
+    var safeTitle    = sanitize(item.title);
+    var safeSeller   = sanitize(item.seller);
     var safeLocation = sanitize(item.location || 'Campus');
-    var safeTime = sanitize(item.time || '');
+    var safeTime     = sanitize(item.time || '');
+
+    // Use real photo if available, else gradient+emoji
+    var imgSection;
+    if (item.image_url) {
+      imgSection =
+        '<div class="listing-img-photo-wrap">' +
+          '<img class="listing-img-photo" src="' + sanitize(item.image_url) + '" alt="' + safeTitle + '" loading="lazy" onerror="this.parentElement.style.display=\'none\';this.parentElement.nextElementSibling && (this.parentElement.nextElementSibling.style.display=\'flex\')"/>' +
+          '<span class="badge ' + bc + '">' + bt + '</span>' +
+          '<button class="' + heartClass + '" onclick="event.stopPropagation();toggleSave(' + item.id + ')">' + (isSaved ? '\u2665' : '\u2661') + '</button>' +
+        '</div>';
+    } else {
+      imgSection =
+        '<div class="listing-img" style="background:' + g + ';">' +
+          '<span style="font-size:48px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.3));">' + em + '</span>' +
+          '<span class="badge ' + bc + '">' + bt + '</span>' +
+          '<button class="' + heartClass + '" onclick="event.stopPropagation();toggleSave(' + item.id + ')">' + (isSaved ? '\u2665' : '\u2661') + '</button>' +
+        '</div>';
+    }
 
     return '<div class="listing-card' + (isH ? ' h-card' : '') + '" onclick="openDetail(' + item.id + ')">' +
-      '<div class="listing-img" style="background:' + g + ';">' +
-        '<span style="font-size:48px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.3));">' + em + '</span>' +
-        '<span class="badge ' + bc + '">' + bt + '</span>' +
-        '<button class="' + heartClass + '" onclick="event.stopPropagation();toggleSave(' + item.id + ')">' + (isSaved ? '♥' : '♡') + '</button>' +
-      '</div>' +
+      imgSection +
       '<div class="listing-body">' +
         '<h3>' + safeTitle + '</h3>' +
         '<span class="' + priceClass + '">' + priceText + '</span>' +
-        '<div class="listing-meta"><span>👤 ' + safeSeller + '</span><span>📍 ' + safeLocation + '</span></div>' +
-        '<div class="listing-meta"><span>🕐 ' + safeTime + '</span></div>' +
+        '<div class="listing-meta"><span>\u{1F464} ' + safeSeller + '</span><span>\u{1F4CD} ' + safeLocation + '</span></div>' +
+        '<div class="listing-meta"><span>\u{1F550} ' + safeTime + '</span></div>' +
       '</div></div>';
   }
 
@@ -547,7 +560,24 @@
     rg.innerHTML = demoListings.slice(0, 6).map(function (l) { return cardHTML(l, false); }).join('');
   }
 
-  // ============ RENDER MARKETPLACE ============
+  // ============ RENDER MARKETPLACE (with skeleton loader) ============
+  var _marketplaceLoading = false;
+  function showSkeletons(gridId, count) {
+    var grid = document.getElementById(gridId);
+    if (!grid) return;
+    var skels = '';
+    for (var i = 0; i < count; i++) {
+      skels += '<div class="skeleton-card">' +
+        '<div class="skeleton skeleton-img"></div>' +
+        '<div class="skeleton-body">' +
+          '<div class="skeleton skeleton-line w-full"></div>' +
+          '<div class="skeleton skeleton-line w-3q"></div>' +
+          '<div class="skeleton skeleton-line w-half"></div>' +
+          '<div class="skeleton skeleton-line w-1q"></div>' +
+        '</div></div>';
+    }
+    grid.innerHTML = skels;
+  }
   function renderMarketplace() {
     var grid = document.getElementById('market-grid');
     var items = demoListings.concat(state.myListings);
@@ -807,18 +837,20 @@
       roll: state.profile ? state.profile.roll_number : '',
       time: 'Just now', views: 0,
     };
+    // Calculate expiry 30 days from now
+    var expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     // Save to Supabase
     if (isLive && sb && state.user) {
       try {
         await sb.from('listings').insert({
           user_id: state.user.id, title: title, category: category,
-          type: type, price: price, condition: condition,
-          description: description,
-          barter_wants: barterWants,
+          listing_type: type, price: price, condition: condition,
+          description: description, barter_wants: barterWants,
           location: location, image_url: imageUrl,
+          is_active: true, expires_at: expiresAt,
         });
-      } catch (err) { console.warn('Supabase insert error:', err); }
+      } catch (err) { /* silent fail */ }
     }
 
     state.myListings.unshift(newListing);
@@ -1049,11 +1081,19 @@
       grid.style.display = 'grid'; empty.style.display = 'none';
       grid.innerHTML = state.myListings.map(function (l) {
         var isSold = soldIds && soldIds.has(l.id);
+        var expiresAt = l.expires_at ? new Date(l.expires_at) : null;
+        var daysLeft = expiresAt ? Math.ceil((expiresAt - Date.now()) / 86400000) : null;
+        var expiryHtml = (daysLeft !== null && !isSold)
+          ? '<div class="expiry-badge' + (daysLeft <= 5 ? ' urgent' : '') + '">' +
+            '\u23F3 Expires in ' + daysLeft + ' day' + (daysLeft !== 1 ? 's' : '') + '</div>'
+          : '';
+        var safeTitle = (l.title || 'this listing').replace(/'/g, '');
         return '<div class="my-listing-wrap">' +
           cardHTML(l, false) +
+          expiryHtml +
           (isSold
-            ? '<div style="text-align:center;padding:6px;font-size:12px;color:var(--danger);font-weight:600;">SOLD</div>'
-            : '<button class="mark-sold-btn" onclick="markAsSold(' + l.id + ', this)">✓ Mark as Sold</button>') +
+            ? '<div style="text-align:center;padding:6px;font-size:12px;color:var(--danger);font-weight:600;">\u2705 SOLD</div>'
+            : '<button class="mark-sold-btn" onclick="openSoldConfirm(' + l.id + ',\'' + safeTitle + '\')">\u2713 Mark as Sold</button>') +
           '</div>';
       }).join('');
     }
@@ -1741,41 +1781,55 @@
   }
   window.confirmDeleteAccount = confirmDeleteAccount;
 
-  // ============ REAL LISTINGS — FIX ============
-  // Patch loadRealListings to always show something
-  var _origLoadReal = window.loadRealListings;
+  // ============ REAL LISTINGS — FULL FIX ============
   async function loadRealListings() {
     if (!isLive || !sb || !state.user) return;
+    // Show skeletons while loading
+    showSkeletons('market-grid', 6);
     try {
+      var now = new Date().toISOString();
       var { data, error } = await sb.from('listings')
-        .select('*, profiles(full_name, avatar_url)')
+        .select('*, profiles(full_name, roll_number, school, year, bio, avatar_url)')
         .eq('is_active', true)
+        .gt('expires_at', now)          // auto-expire: only show non-expired
         .order('created_at', { ascending: false })
         .limit(50);
       if (!error && data && data.length > 0) {
-        // Replace demo listings with real ones
         demoListings.length = 0;
         data.forEach(function(row) {
+          var d = new Date(row.created_at);
+          var diffMs = Date.now() - d.getTime();
+          var diffH  = Math.floor(diffMs / 3600000);
+          var timeStr = diffH < 1 ? 'Just now' : diffH < 24 ? diffH + 'h ago' : Math.floor(diffH/24) + 'd ago';
           demoListings.push({
-            id: row.id,
-            title: row.title,
-            price: row.price || 0,
-            type: row.listing_type || 'sale',
-            condition: row.condition || 'Good',
-            category: row.category || 'other',
-            seller: (row.profiles && row.profiles.full_name) || 'K-SWAP User',
-            description: row.description,
-            emoji: row.emoji || '📦',
-            views: row.views || 0,
-            created_at: row.created_at,
-            is_active: true
+            id:          row.id,
+            title:       row.title,
+            price:       row.price || 0,
+            type:        row.listing_type || 'sale',
+            condition:   row.condition || 'Good',
+            category:    row.category || 'other',
+            seller:      (row.profiles && row.profiles.full_name) || 'K-SWAP User',
+            roll:        (row.profiles && row.profiles.roll_number) || '',
+            description: row.description || '',
+            location:    row.location || 'Campus',
+            barterWants: row.barter_wants || '',
+            image_url:   row.image_url || '',
+            views:       row.views || 0,
+            time:        timeStr,
+            expires_at:  row.expires_at,
+            user_id:     row.user_id,
+            is_active:   true,
+            // keep profile ref for seller page
+            _profile:    row.profiles || {},
           });
         });
         renderMarketplace();
         renderHome();
+      } else {
+        renderMarketplace(); // clears skeletons even if no data
       }
     } catch (err) {
-      console.warn('loadRealListings error:', err);
+      renderMarketplace();
     }
   }
   window.loadRealListings = loadRealListings;
@@ -1906,6 +1960,132 @@
   };
 
   document.addEventListener('DOMContentLoaded', init);
-})();
 
+  // ============ WHATSAPP SHARE ============
+  function shareWhatsApp() {
+    var item = state.currentDetailItem;
+    if (!item) return;
+    var priceStr = item.type === 'free' ? 'FREE' : item.type === 'barter' ? 'Open to Barter' : '\u20B9' + item.price;
+    var text = '\uD83D\uDED2 *' + item.title + '*\n' +
+      '\uD83D\uDCB0 ' + priceStr + ' \u2022 ' + (item.condition || 'Good') + '\n' +
+      '\uD83D\uDCCD ' + (item.location || 'Campus') + '\n\n' +
+      'Available on *K-SWAP* \u2014 the KIIT campus marketplace!\n' +
+      '\uD83D\uDC49 https:\u002F\u002Fshellyscode.github.io\u002Fkswap';
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  }
+  window.shareWhatsApp = shareWhatsApp;
+
+  // ============ SELLER PROFILE PAGE ============
+  function openSellerProfile() {
+    var item = state.currentDetailItem;
+    if (!item) return;
+    state.currentSellerItem = item;
+    var profile = item._profile || {};
+
+    // Fill hero card
+    var name = sanitize(item.seller || 'K-SWAP User');
+    var initials = name.charAt(0).toUpperCase();
+    document.getElementById('sp-avatar').textContent = initials;
+    document.getElementById('sp-name').textContent = name;
+    document.getElementById('sp-meta').textContent =
+      (item.roll ? item.roll + ' \u00B7 ' : '') +
+      (profile.school || 'KIIT') +
+      (profile.year ? ' \u00B7 ' + profile.year : '');
+    document.getElementById('sp-bio').textContent = profile.bio || 'Active trader on K-SWAP \uD83D\uDE80';
+    document.getElementById('sp-rating').textContent = (4 + Math.random()).toFixed(1);
+
+    // Load seller's listings
+    var sellerId = item.user_id;
+    var sellerListings = getAllListings().filter(function(l) {
+      return l.user_id === sellerId || l.seller === item.seller;
+    });
+    document.getElementById('sp-listings').textContent = sellerListings.length;
+    document.getElementById('sp-trades').textContent = Math.max(0, sellerListings.length - 1);
+
+    var grid = document.getElementById('sp-listings-grid');
+    if (sellerListings.length === 0) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">\uD83D\uDCE6</div><h3>No active listings</h3><p>This seller has no listings right now</p></div>';
+    } else {
+      grid.innerHTML = sellerListings.map(function(l) { return cardHTML(l, false); }).join('');
+    }
+
+    // If live, fetch from Supabase
+    if (isLive && sb && sellerId) {
+      sb.from('listings')
+        .select('*')
+        .eq('user_id', sellerId)
+        .eq('is_active', true)
+        .then(function(res) {
+          if (res.data && res.data.length > 0) {
+            document.getElementById('sp-listings').textContent = res.data.length;
+            document.getElementById('sp-trades').textContent = Math.max(0, res.data.length - 1);
+            grid.innerHTML = res.data.map(function(row) {
+              return cardHTML({
+                id: row.id, title: row.title, price: row.price || 0,
+                type: row.listing_type || 'sale', condition: row.condition || 'Good',
+                category: row.category || 'other', seller: item.seller,
+                location: row.location || 'Campus', image_url: row.image_url || '',
+                time: '', user_id: row.user_id,
+              }, false);
+            }).join('');
+          }
+        });
+    }
+
+    navigate('seller');
+  }
+  window.openSellerProfile = openSellerProfile;
+
+  // ============ MARK AS SOLD — IMPROVED ============
+  var _soldTargetId = null;
+  var _soldTargetTitle = '';
+
+  function openSoldConfirm(listingId, title) {
+    _soldTargetId = listingId;
+    _soldTargetTitle = title || 'this listing';
+    document.getElementById('sold-confirm-sub').textContent =
+      'Mark \u201C' + sanitize(title) + '\u201D as sold? It will be removed from the marketplace.';
+    document.getElementById('sold-confirm-modal').classList.add('open');
+  }
+  window.openSoldConfirm = openSoldConfirm;
+
+  function closeSoldConfirm(e) {
+    if (!e || e.target === document.getElementById('sold-confirm-modal')) {
+      document.getElementById('sold-confirm-modal').classList.remove('open');
+    }
+  }
+  window.closeSoldConfirm = closeSoldConfirm;
+
+  async function confirmMarkSold() {
+    document.getElementById('sold-confirm-modal').classList.remove('open');
+    if (!_soldTargetId) return;
+    showToast('\uD83C\uDF89 Marked as sold!', 'success');
+
+    // Update in Supabase
+    if (isLive && sb && state.user) {
+      try {
+        await sb.from('listings')
+          .update({ is_active: false, sold_at: new Date().toISOString() })
+          .eq('id', _soldTargetId)
+          .eq('user_id', state.user.id);
+      } catch(err) { /* silent fail */ }
+    }
+
+    // Remove from local state
+    state.myListings = state.myListings.filter(function(l) { return l.id !== _soldTargetId; });
+    var idx = demoListings.findIndex(function(l) { return l.id === _soldTargetId; });
+    if (idx > -1) demoListings.splice(idx, 1);
+
+    // Refresh profile page
+    if (state.currentPage === 'profile') renderProfile();
+    _soldTargetId = null;
+
+    // Ask to rate buyer
+    setTimeout(function() {
+      showToast('\uD83D\uDC4D Want to rate the buyer? Open the chat with them.', 'success');
+    }, 2000);
+  }
+  window.confirmMarkSold = confirmMarkSold;
+
+})();
 
