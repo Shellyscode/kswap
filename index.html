@@ -593,13 +593,17 @@
           <div class="seller-avatar" id="detail-seller-avatar">R</div>
           <div>
             <h3 id="detail-seller-name" onclick="openSellerProfile()" title="View seller profile">Seller</h3>
-            <p id="detail-seller-info">KIIT Student</p>
+            <p id="detail-seller-info" style="font-size:12px; color:var(--text-secondary);"></p>
           </div>
         </div>
         <div class="seller-rating" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
           <div style="display:flex;align-items:center;gap:4px;"><span>⭐</span><span id="detail-seller-rating">5.0</span></div>
           <button class="btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="openSellerProfile()">View Profile →</button>
         </div>
+      </div>
+      <!-- Seller owner actions -->
+      <div id="detail-owner-actions" style="display:none; margin-top:12px;">
+        <button class="btn-primary" style="width:100%; background:var(--success); border-color:var(--success);" onclick="openSoldConfirmFromDetail()">✓ Mark This as Sold</button>
       </div>
       <!-- Related Items -->
       <div class="section-header" style="margin-top:24px;"><h2>Similar Items</h2></div>
@@ -621,23 +625,33 @@
       <button class="btn-icon" onclick="goBack()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
       </button>
-      <span style="font-weight:700; font-size:16px;">Seller Profile</span>
-      <div style="width:36px;"></div>
+      <span style="font-weight:700; font-size:16px;">Member Profile</span>
+      <button id="sp-block-btn" class="btn-icon" onclick="blockSellerFromProfile()" title="Block this user" style="width:36px;height:36px; color:var(--text-muted);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+      </button>
     </div>
     <div class="page-inner" style="padding-top:20px;">
       <div class="seller-profile-hero">
         <div class="seller-profile-avatar" id="sp-avatar">K</div>
-        <div class="seller-verified-badge">✅ Verified KIIT Student</div>
-        <div class="seller-profile-name" id="sp-name">Seller Name</div>
-        <div class="seller-profile-meta" id="sp-meta">Roll · School · Year</div>
+        <!-- Honest, non-misleading community tag -->
+        <div class="seller-community-badge">📍 KIIT University, Bhubaneswar</div>
+        <div class="seller-profile-name" id="sp-name">Member Name</div>
+        <div class="seller-profile-meta" id="sp-meta">School · Year</div>
         <div class="seller-profile-stats">
           <div class="seller-stat-item"><strong id="sp-listings">0</strong><span>Listings</span></div>
-          <div class="seller-stat-item"><strong id="sp-rating">5.0</strong><span>Rating</span></div>
-          <div class="seller-stat-item"><strong id="sp-trades">0</strong><span>Trades</span></div>
+          <div class="seller-stat-item"><strong id="sp-rating">—</strong><span>Rating</span></div>
+          <div class="seller-stat-item"><strong id="sp-reviews-count">0</strong><span>Reviews</span></div>
         </div>
         <div id="sp-bio" style="font-size:13px; color:var(--text-secondary); margin-top:4px;"></div>
       </div>
-      <div class="section-header"><h2>Active Listings</h2></div>
+
+      <!-- Reviews Section -->
+      <div class="section-header"><h2>Reviews</h2>
+        <button class="btn-ghost" style="font-size:13px;" onclick="openWriteReview()" id="sp-write-review-btn">+ Write Review</button>
+      </div>
+      <div id="sp-reviews-list"><div class="empty-state" style="padding:24px 0;"><div class="empty-icon">💬</div><h3>No reviews yet</h3><p>Be the first to review this seller</p></div></div>
+
+      <div class="section-header" style="margin-top:24px;"><h2>Active Listings</h2></div>
       <div class="market-grid" id="sp-listings-grid"></div>
     </div>
   </div>
@@ -651,6 +665,42 @@
       <div class="sold-confirm-btns">
         <button class="btn-primary" onclick="confirmMarkSold()" style="background:var(--success); border-color:var(--success);">✅ Yes, It's Sold!</button>
         <button class="btn-ghost" onclick="closeSoldConfirm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== WRITE REVIEW MODAL ==================== -->
+  <div id="review-modal" class="sold-confirm-modal" onclick="closeReviewModal(event)">
+    <div class="sold-confirm-sheet">
+      <div class="sold-confirm-icon">⭐</div>
+      <div class="sold-confirm-title">Write a Review</div>
+      <div class="sold-confirm-sub">Share your experience with this seller to help the community</div>
+      <div style="display:flex; justify-content:center; gap:8px; margin-bottom:16px;" id="review-stars">
+        <span class="review-star" data-val="1" onclick="setReviewRating(1)">★</span>
+        <span class="review-star" data-val="2" onclick="setReviewRating(2)">★</span>
+        <span class="review-star" data-val="3" onclick="setReviewRating(3)">★</span>
+        <span class="review-star" data-val="4" onclick="setReviewRating(4)">★</span>
+        <span class="review-star" data-val="5" onclick="setReviewRating(5)">★</span>
+      </div>
+      <div class="input-wrap" style="margin-bottom:16px;">
+        <textarea id="review-text" placeholder="How was your experience? Was the item as described? Was the seller responsive?" rows="3" style="width:100%; resize:none;"></textarea>
+      </div>
+      <div class="sold-confirm-btns">
+        <button class="btn-primary" onclick="submitReview()">Submit Review</button>
+        <button class="btn-ghost" onclick="closeReviewModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BLOCK USER CONFIRM ==================== -->
+  <div id="block-confirm-modal" class="sold-confirm-modal" onclick="closeBlockModal(event)">
+    <div class="sold-confirm-sheet">
+      <div class="sold-confirm-icon">🚫</div>
+      <div class="sold-confirm-title" id="block-modal-title">Block this member?</div>
+      <div class="sold-confirm-sub">Their listings will be hidden from your feed. You can unblock them from Settings.</div>
+      <div class="sold-confirm-btns">
+        <button class="btn-primary" onclick="confirmBlock()" style="background:var(--danger); border-color:var(--danger);">Block Member</button>
+        <button class="btn-ghost" onclick="closeBlockModal()">Cancel</button>
       </div>
     </div>
   </div>
