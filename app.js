@@ -144,10 +144,14 @@
   ];
 
   // ============ NAVIGATION ============
+  // Stack-based navigation history — fixes back button for nested pages
+  var _navStack = [];
   function navigate(page) {
-    // Save previous page for back button
-    if (state.currentPage !== page && state.currentPage !== 'landing') {
-      state.previousPage = state.currentPage;
+    // Push current page to stack before navigating (not for same page)
+    if (state.currentPage && state.currentPage !== page) {
+      _navStack.push(state.currentPage);
+      // Keep stack lean
+      if (_navStack.length > 20) _navStack.shift();
     }
 
     document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
@@ -182,7 +186,12 @@
   window.navigate = navigate;
 
   function goBack() {
-    navigate(state.previousPage || 'home');
+    // Pop stack — skip duplicates of current page
+    var prev = _navStack.pop();
+    while (prev === state.currentPage && _navStack.length > 0) {
+      prev = _navStack.pop();
+    }
+    navigate(prev || 'home');
   }
   window.goBack = goBack;
 
@@ -694,8 +703,17 @@
     sellerAvatar.textContent = (item.seller || 'S').charAt(0);
     sellerAvatar.style.background = g;
     document.getElementById('detail-seller-name').textContent = item.seller || 'Seller';
-    document.getElementById('detail-seller-info').textContent = (item.roll || '') + '@kiit.ac.in • ⭐ Verified Student';
+    // Honest info: roll + school only, no fake verification
+    var infoText = [];
+    if (item.roll) infoText.push(item.roll);
+    if (item._profile && item._profile.school) infoText.push(item._profile.school);
+    document.getElementById('detail-seller-info').textContent = infoText.join(' · ') || 'KIIT Campus Member';
     document.getElementById('detail-seller-rating').textContent = (4 + Math.random()).toFixed(1);
+
+    // Show Mark as Sold button if current user is the owner
+    var ownerActions = document.getElementById('detail-owner-actions');
+    var isOwner = state.user && item.user_id && state.user.id === item.user_id;
+    ownerActions.style.display = isOwner ? 'block' : 'none';
 
     // Heart
     var isSaved = state.savedIds.has(item.id);
@@ -1970,55 +1988,149 @@
       '\uD83D\uDCB0 ' + priceStr + ' \u2022 ' + (item.condition || 'Good') + '\n' +
       '\uD83D\uDCCD ' + (item.location || 'Campus') + '\n\n' +
       'Available on *K-SWAP* \u2014 the KIIT campus marketplace!\n' +
-      '\uD83D\uDC49 https:\u002F\u002Fshellyscode.github.io\u002Fkswap';
+      '\uD83D\uDC49 https://shellyscode.github.io/kswap';
     window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
   }
   window.shareWhatsApp = shareWhatsApp;
 
-  // ============ SELLER PROFILE PAGE ============
+  // ============ MARK AS SOLD FROM DETAIL PAGE ============
+  function openSoldConfirmFromDetail() {
+    var item = state.currentDetailItem;
+    if (!item) return;
+    openSoldConfirm(item.id, item.title);
+  }
+  window.openSoldConfirmFromDetail = openSoldConfirmFromDetail;
+
+  // ============ BLOCK USER ============
+  var _blockTargetId = null;
+  var _blockTargetName = '';
+
+  function getBlockedUsers() {
+    try { return JSON.parse(localStorage.getItem('kswap_blocked') || '[]'); } catch(e) { return []; }
+  }
+  function saveBlockedUsers(arr) {
+    localStorage.setItem('kswap_blocked', JSON.stringify(arr));
+  }
+  function isBlocked(userId) {
+    return getBlockedUsers().includes(userId);
+  }
+
+  function blockSellerFromProfile() {
+    var item = state.currentSellerItem;
+    if (!item || !item.user_id) return;
+    // Don't let user block themselves
+    if (state.user && item.user_id === state.user.id) {
+      showToast('You cannot block yourself', 'error'); return;
+    }
+    _blockTargetId = item.user_id;
+    _blockTargetName = item.seller || 'this member';
+    document.getElementById('block-modal-title').textContent = 'Block ' + sanitize(_blockTargetName) + '?';
+    document.getElementById('block-confirm-modal').classList.add('open');
+  }
+  window.blockSellerFromProfile = blockSellerFromProfile;
+
+  function closeBlockModal(e) {
+    if (!e || e.target === document.getElementById('block-confirm-modal')) {
+      document.getElementById('block-confirm-modal').classList.remove('open');
+    }
+  }
+  window.closeBlockModal = closeBlockModal;
+
+  function confirmBlock() {
+    if (!_blockTargetId) return;
+    var blocked = getBlockedUsers();
+    if (!blocked.includes(_blockTargetId)) blocked.push(_blockTargetId);
+    saveBlockedUsers(blocked);
+    document.getElementById('block-confirm-modal').classList.remove('open');
+    showToast('\uD83D\uDEAB ' + sanitize(_blockTargetName) + ' has been blocked', 'success');
+    // Update block button appearance
+    var btn = document.getElementById('sp-block-btn');
+    if (btn) btn.classList.add('sp-blocked');
+    // Remove their listings from local feed
+    demoListings = demoListings.filter(function(l) { return l.user_id !== _blockTargetId; });
+    renderMarketplace();
+    renderHome();
+    _blockTargetId = null;
+    goBack();
+  }
+  window.confirmBlock = confirmBlock;
+
+  // ============ SELLER PROFILE (updated with reviews + block state) ============
   function openSellerProfile() {
     var item = state.currentDetailItem;
     if (!item) return;
     state.currentSellerItem = item;
     var profile = item._profile || {};
 
-    // Fill hero card
     var name = sanitize(item.seller || 'K-SWAP User');
-    var initials = name.charAt(0).toUpperCase();
-    document.getElementById('sp-avatar').textContent = initials;
+    document.getElementById('sp-avatar').textContent = name.charAt(0).toUpperCase();
     document.getElementById('sp-name').textContent = name;
-    document.getElementById('sp-meta').textContent =
-      (item.roll ? item.roll + ' \u00B7 ' : '') +
-      (profile.school || 'KIIT') +
-      (profile.year ? ' \u00B7 ' + profile.year : '');
-    document.getElementById('sp-bio').textContent = profile.bio || 'Active trader on K-SWAP \uD83D\uDE80';
-    document.getElementById('sp-rating').textContent = (4 + Math.random()).toFixed(1);
 
-    // Load seller's listings
+    var metaParts = [];
+    if (profile.school) metaParts.push(profile.school);
+    if (profile.year) metaParts.push(profile.year);
+    document.getElementById('sp-meta').textContent = metaParts.join(' \u00B7 ') || 'KIIT University';
+    document.getElementById('sp-bio').textContent = profile.bio || '';
+
+    // Block button state
+    var btn = document.getElementById('sp-block-btn');
+    if (btn) btn.classList.toggle('sp-blocked', item.user_id ? isBlocked(item.user_id) : false);
+
+    // Hide write-review if viewing own profile
+    var writeBtn = document.getElementById('sp-write-review-btn');
+    var isOwnProfile = state.user && item.user_id === state.user.id;
+    if (writeBtn) writeBtn.style.display = isOwnProfile ? 'none' : '';
+    if (btn) btn.style.display = isOwnProfile ? 'none' : '';
+
+    // Load listings
     var sellerId = item.user_id;
     var sellerListings = getAllListings().filter(function(l) {
       return l.user_id === sellerId || l.seller === item.seller;
     });
     document.getElementById('sp-listings').textContent = sellerListings.length;
-    document.getElementById('sp-trades').textContent = Math.max(0, sellerListings.length - 1);
-
     var grid = document.getElementById('sp-listings-grid');
-    if (sellerListings.length === 0) {
-      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">\uD83D\uDCE6</div><h3>No active listings</h3><p>This seller has no listings right now</p></div>';
-    } else {
-      grid.innerHTML = sellerListings.map(function(l) { return cardHTML(l, false); }).join('');
-    }
+    grid.innerHTML = sellerListings.length === 0
+      ? '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">\uD83D\uDCE6</div><h3>No active listings</h3></div>'
+      : sellerListings.map(function(l) { return cardHTML(l, false); }).join('');
 
-    // If live, fetch from Supabase
+    // Load reviews from Supabase
+    document.getElementById('sp-rating').textContent = '\u2014';
+    document.getElementById('sp-reviews-count').textContent = '0';
+    document.getElementById('sp-reviews-list').innerHTML = '<div class="empty-state" style="padding:24px 0;"><div class="empty-icon">\uD83D\uDCAC</div><h3>No reviews yet</h3><p>Be the first to review this seller</p></div>';
+
     if (isLive && sb && sellerId) {
-      sb.from('listings')
+      sb.from('reviews')
         .select('*')
-        .eq('user_id', sellerId)
-        .eq('is_active', true)
+        .eq('seller_id', sellerId)
+        .order('created_at', { ascending: false })
+        .limit(20)
+        .then(function(res) {
+          if (res.data && res.data.length > 0) {
+            var avg = (res.data.reduce(function(s, r) { return s + (r.rating || 5); }, 0) / res.data.length).toFixed(1);
+            document.getElementById('sp-rating').textContent = avg;
+            document.getElementById('sp-reviews-count').textContent = res.data.length;
+            document.getElementById('sp-reviews-list').innerHTML = res.data.map(function(r) {
+              var stars = '\u2605'.repeat(r.rating || 5) + '\u2606'.repeat(5 - (r.rating || 5));
+              var d = new Date(r.created_at);
+              var dateStr = d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+              return '<div class="review-card">' +
+                '<div class="review-header">' +
+                  '<div class="review-avatar">' + (r.reviewer_name || 'K').charAt(0).toUpperCase() + '</div>' +
+                  '<div><div class="review-name">' + sanitize(r.reviewer_name || 'Anonymous') + '</div>' +
+                  '<div class="review-date">' + dateStr + '</div></div>' +
+                  '<div class="review-stars" style="margin-left:auto;">' + stars + '</div>' +
+                '</div>' +
+                (r.review_text ? '<div class="review-text">' + sanitize(r.review_text) + '</div>' : '') +
+              '</div>';
+            }).join('');
+          }
+        });
+
+      // Also load their listings from Supabase
+      sb.from('listings').select('*').eq('user_id', sellerId).eq('is_active', true)
         .then(function(res) {
           if (res.data && res.data.length > 0) {
             document.getElementById('sp-listings').textContent = res.data.length;
-            document.getElementById('sp-trades').textContent = Math.max(0, res.data.length - 1);
             grid.innerHTML = res.data.map(function(row) {
               return cardHTML({
                 id: row.id, title: row.title, price: row.price || 0,
@@ -2036,56 +2148,63 @@
   }
   window.openSellerProfile = openSellerProfile;
 
-  // ============ MARK AS SOLD — IMPROVED ============
-  var _soldTargetId = null;
-  var _soldTargetTitle = '';
+  // ============ WRITE REVIEW ============
+  var _reviewRating = 5;
+  var _reviewTargetId = null;
 
-  function openSoldConfirm(listingId, title) {
-    _soldTargetId = listingId;
-    _soldTargetTitle = title || 'this listing';
-    document.getElementById('sold-confirm-sub').textContent =
-      'Mark \u201C' + sanitize(title) + '\u201D as sold? It will be removed from the marketplace.';
-    document.getElementById('sold-confirm-modal').classList.add('open');
+  function openWriteReview() {
+    var item = state.currentSellerItem;
+    if (!item) return;
+    if (!state.user) { showToast('Login to write a review', 'error'); return; }
+    if (item.user_id === state.user.id) { showToast('You cannot review yourself', 'error'); return; }
+    _reviewTargetId = item.user_id;
+    _reviewRating = 5;
+    document.getElementById('review-text').value = '';
+    setReviewRating(5);
+    document.getElementById('review-modal').classList.add('open');
   }
-  window.openSoldConfirm = openSoldConfirm;
+  window.openWriteReview = openWriteReview;
 
-  function closeSoldConfirm(e) {
-    if (!e || e.target === document.getElementById('sold-confirm-modal')) {
-      document.getElementById('sold-confirm-modal').classList.remove('open');
+  function closeReviewModal(e) {
+    if (!e || e.target === document.getElementById('review-modal')) {
+      document.getElementById('review-modal').classList.remove('open');
     }
   }
-  window.closeSoldConfirm = closeSoldConfirm;
+  window.closeReviewModal = closeReviewModal;
 
-  async function confirmMarkSold() {
-    document.getElementById('sold-confirm-modal').classList.remove('open');
-    if (!_soldTargetId) return;
-    showToast('\uD83C\uDF89 Marked as sold!', 'success');
+  function setReviewRating(val) {
+    _reviewRating = val;
+    document.querySelectorAll('.review-star').forEach(function(s) {
+      var v = parseInt(s.getAttribute('data-val'));
+      s.classList.toggle('active', v <= val);
+    });
+  }
+  window.setReviewRating = setReviewRating;
 
-    // Update in Supabase
+  async function submitReview() {
+    if (!_reviewTargetId) return;
+    var text = document.getElementById('review-text').value.trim();
+    document.getElementById('review-modal').classList.remove('open');
+
     if (isLive && sb && state.user) {
       try {
-        await sb.from('listings')
-          .update({ is_active: false, sold_at: new Date().toISOString() })
-          .eq('id', _soldTargetId)
-          .eq('user_id', state.user.id);
-      } catch(err) { /* silent fail */ }
+        await sb.from('reviews').insert({
+          reviewer_id: state.user.id,
+          seller_id: _reviewTargetId,
+          rating: _reviewRating,
+          review_text: text || null,
+          reviewer_name: (state.profile && state.profile.full_name) || 'Anonymous',
+        });
+        showToast('\u2B50 Review submitted! Thank you.', 'success');
+        openSellerProfile();
+      } catch(err) {
+        showToast('Could not submit review. Try again.', 'error');
+      }
+    } else {
+      showToast('\u2B50 Review submitted! Thank you.', 'success');
     }
-
-    // Remove from local state
-    state.myListings = state.myListings.filter(function(l) { return l.id !== _soldTargetId; });
-    var idx = demoListings.findIndex(function(l) { return l.id === _soldTargetId; });
-    if (idx > -1) demoListings.splice(idx, 1);
-
-    // Refresh profile page
-    if (state.currentPage === 'profile') renderProfile();
-    _soldTargetId = null;
-
-    // Ask to rate buyer
-    setTimeout(function() {
-      showToast('\uD83D\uDC4D Want to rate the buyer? Open the chat with them.', 'success');
-    }, 2000);
+    _reviewTargetId = null;
   }
-  window.confirmMarkSold = confirmMarkSold;
+  window.submitReview = submitReview;
 
 })();
-
