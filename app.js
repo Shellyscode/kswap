@@ -224,8 +224,28 @@
   let currentLoginEmail = '';
   let currentSignupData = null;
 
+  // Bot Protection Variables
+  let _lastOtpTime = 0;
+  let _wrongAttemptsLogin = 0;
+  let _lockoutUntilLogin = 0;
+  let _wrongAttemptsSignup = 0;
+  let _lockoutUntilSignup = 0;
+
+  function canSendOtp() {
+    var now = Date.now();
+    var diff = Math.floor((now - _lastOtpTime) / 1000);
+    if (diff < 60) {
+      showToast('Please wait ' + (60 - diff) + ' seconds before requesting another OTP', 'error');
+      return false;
+    }
+    _lastOtpTime = now;
+    return true;
+  }
+
   async function handleLogin(e) {
     e.preventDefault();
+    if (!canSendOtp()) return;
+    
     var email = document.getElementById('login-email').value.trim().toLowerCase();
     if (!email || !email.includes('@')) { showToast('Please enter a valid email', 'error'); return; }
     if (email.endsWith('@kiit.ac.in')) { showToast('Use the personal email you signed up with, not your KIIT email', 'error'); return; }
@@ -266,6 +286,12 @@
   window.handleLogin = handleLogin;
 
   async function verifyLoginOtp() {
+    if (Date.now() < _lockoutUntilLogin) {
+      var remaining = Math.ceil((_lockoutUntilLogin - Date.now()) / 1000 / 60);
+      showToast('Too many attempts. Locked out for ' + remaining + ' minutes.', 'error');
+      return;
+    }
+
     var otp = document.getElementById('login-otp').value.trim();
     if (!otp || otp.length !== 6) { showToast('Enter valid 6-digit OTP', 'error'); return; }
 
@@ -284,7 +310,14 @@
         showToast('Welcome back! 👋', 'success');
         navigate('home');
       } catch (err) {
-        showToast('Invalid OTP or expired', 'error');
+        _wrongAttemptsLogin++;
+        if (_wrongAttemptsLogin >= 5) {
+          _lockoutUntilLogin = Date.now() + 5 * 60 * 1000;
+          _wrongAttemptsLogin = 0;
+          showToast('5 wrong attempts. Locked out for 5 minutes.', 'error');
+        } else {
+          showToast('Invalid OTP or expired (' + (5 - _wrongAttemptsLogin) + ' attempts left)', 'error');
+        }
       }
     } else {
       var rollNo = currentLoginEmail.split('@')[0];
@@ -345,6 +378,25 @@
 
   async function handleSignup(e) {
     e.preventDefault();
+    
+    // BOT HONEYPOT CHECK
+    var hp = document.getElementById('phone_check');
+    if (hp && hp.value !== '') {
+      var btn = document.getElementById('btn-signup');
+      btn.textContent = 'Sending OTP...';
+      btn.disabled = true;
+      setTimeout(function() {
+        document.getElementById('signup-step-1').style.display = 'none';
+        document.getElementById('signup-step-2').style.display = 'block';
+        showToast('OTP sent to ' + document.getElementById('signup-email').value, 'success');
+        btn.textContent = 'Send OTP →';
+        btn.disabled = false;
+      }, 1000);
+      return;
+    }
+
+    if (!canSendOtp()) return;
+
     var rollNo = document.getElementById('signup-roll').value.trim();
     var email = document.getElementById('signup-email').value.trim().toLowerCase();
     var name = document.getElementById('signup-name').value.trim();
@@ -414,6 +466,12 @@
   window.handleSignup = handleSignup;
 
   async function verifySignupOtp() {
+    if (Date.now() < _lockoutUntilSignup) {
+      var remaining = Math.ceil((_lockoutUntilSignup - Date.now()) / 1000 / 60);
+      showToast('Too many attempts. Locked out for ' + remaining + ' minutes.', 'error');
+      return;
+    }
+
     var otp = document.getElementById('signup-otp').value.trim();
     if (!otp || otp.length !== 6) { showToast('Enter valid 6-digit OTP', 'error'); return; }
 
@@ -441,7 +499,14 @@
           navigate('home');
         }
       } catch (err) {
-        showToast('Invalid OTP or expired', 'error');
+        _wrongAttemptsSignup++;
+        if (_wrongAttemptsSignup >= 5) {
+          _lockoutUntilSignup = Date.now() + 5 * 60 * 1000;
+          _wrongAttemptsSignup = 0;
+          showToast('5 wrong attempts. Locked out for 5 minutes.', 'error');
+        } else {
+          showToast('Invalid OTP or expired (' + (5 - _wrongAttemptsSignup) + ' attempts left)', 'error');
+        }
       }
     } else {
       state.user = { id: 'demo-' + currentSignupData.rollNo, email: currentSignupData.email };
