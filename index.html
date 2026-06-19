@@ -340,6 +340,11 @@
         <!-- Signup -->
         <form id="form-signup" class="auth-form" onsubmit="handleSignup(event)">
           <div id="signup-step-1">
+            <!-- BOT HONEYPOT -->
+            <div style="position: absolute; left: -9999px;">
+              <label for="phone_check">Phone number (leave blank)</label>
+              <input type="text" id="phone_check" name="phone_check" tabindex="-1" autocomplete="off">
+            </div>
             <div class="input-group">
               <label>Roll Number</label>
               <div class="input-wrap">
@@ -732,7 +737,7 @@
       <form id="form-post" onsubmit="handlePost(event)">
         <!-- Image Upload Area -->
         <div class="img-upload" id="img-upload-area" onclick="document.getElementById('post-images').click()">
-          <input type="file" id="post-images" accept="image/*" multiple style="display:none;" onchange="handleImagePreview(this)">
+          <input type="file" id="post-images" accept="image/jpeg, image/png, image/webp, image/gif" multiple style="display:none;" onchange="handleImagePreview(this)">
           <div class="img-upload-placeholder" id="img-upload-placeholder">
             <span style="font-size:36px;">📸</span>
             <p>Tap to add photos</p>
