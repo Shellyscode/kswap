@@ -854,15 +854,32 @@
   window.selectType = selectType;
 
   function handleImagePreview(input) {
-    var files = Array.from(input.files).slice(0, 4);
-    state.imageFiles = files;
+    var validFiles = [];
+    var allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    var maxSize = 5 * 1024 * 1024; // 5MB
+
+    for (var i = 0; i < input.files.length; i++) {
+      var f = input.files[i];
+      if (!allowedTypes.includes(f.type)) {
+        showToast('Only JPEG, PNG, WEBP, and GIF images are allowed', 'error');
+        continue;
+      }
+      if (f.size > maxSize) {
+        showToast('Image ' + f.name + ' is too large (max 5MB)', 'error');
+        continue;
+      }
+      validFiles.push(f);
+      if (validFiles.length >= 4) break;
+    }
+
+    state.imageFiles = validFiles;
     var row = document.getElementById('img-preview-row');
     var placeholder = document.getElementById('img-upload-placeholder');
-    if (files.length > 0) {
+    if (validFiles.length > 0) {
       placeholder.style.display = 'none';
       row.style.display = 'flex';
       row.innerHTML = '';
-      files.forEach(function (f) {
+      validFiles.forEach(function (f) {
         var img = document.createElement('img');
         img.src = URL.createObjectURL(f);
         row.appendChild(img);
@@ -870,6 +887,7 @@
     } else {
       placeholder.style.display = 'block';
       row.style.display = 'none';
+      input.value = ''; // clear input if all rejected
     }
   }
   window.handleImagePreview = handleImagePreview;
